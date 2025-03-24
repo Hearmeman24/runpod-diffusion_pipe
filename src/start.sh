@@ -34,6 +34,8 @@ apt-get update
 apt-get install ffmpeg
 cd $NETWORK_VOLUME
 
+git clone https://github.com/MNeMoNiCuZ/joy-caption-batch.git
+
 
 # Workspace as main working directory
 echo "cd $NETWORK_VOLUME" >> ~/.bashrc
@@ -50,8 +52,8 @@ if [ "$download_wan13" == "true" ]; then
 
 fi
 
-if [ "$download_wan14B" == "true" ]; then
-  mv $NETWORK_VOLUME/wan14b_video.toml $NETWORK_VOLUME/diffusion_pipe/examples
+if [ "$download_wan14B_t2v" == "true" ]; then
+  mv $NETWORK_VOLUME/wan14b_t2v.toml $NETWORK_VOLUME/diffusion_pipe/examples
   echo "Downloading Wan 14B model"
   mkdir -p /Wan/Wan2.1-T2V-14B
   huggingface-cli download Wan-AI/Wan2.1-T2V-14B --local-dir /Wan/Wan2.1-T2V-14B 2>&1 | tee download_log.txt
@@ -59,11 +61,19 @@ if [ "$download_wan14B" == "true" ]; then
 fi
 
 if [ "$download_wan14B_i2v_480p" == "true" ]; then
-  mv $NETWORK_VOLUME/wan14b_video.toml $NETWORK_VOLUME/diffusion_pipe/examples
+  mv $NETWORK_VOLUME/wan14b_i2v.toml $NETWORK_VOLUME/diffusion_pipe/examples
   echo "Downloading Wan 14B I2V model"
   mkdir -p /Wan/Wan2.1-I2V-14B-480P
   huggingface-cli download Wan-AI/Wan2.1-I2V-14B-480P --local-dir /Wan/Wan2.1-I2V-14B-480P 2>&1 | tee download_log.txt
   echo "Finished downloading Wan 14B model"
+fi
+
+if [ "$download_base_sdxl" == "true" ]; then
+  mv $NETWORK_VOLUME/sdxl.toml $NETWORK_VOLUME/diffusion_pipe/examples
+  echo "Downloading Base SDXL"
+  mkdir -p $NETWORK_VOLUME/models
+  huggingface-cli download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir $NETWORK_VOLUME/models 2>&1 | tee download_log.txt
+  echo "Finished downloading base SDXL"
 fi
 
 sleep infinity
