@@ -17,8 +17,7 @@ fi
 NETWORK_VOLUME="/workspace"
 
 mv runpod-diffusion_pipe/start_training_scripts /
-rm /diffusion_pipe/examples/hunyuan_video.toml
-rm /diffusion_pipe/examples/dataset.toml
+rm /diffusion_pipe/examples/*
 mv runpod-diffusion_pipe/dataset.toml /diffusion_pipe/examples
 
 # Check if NETWORK_VOLUME exists; if not, use root directory instead
