@@ -72,4 +72,21 @@ if [ "$download_base_sdxl" == "true" ]; then
   echo "Finished downloading base SDXL"
 fi
 
+
+if [ "$download_flux" == "true" ]; then
+  if [ -z "$HUGGING_FACE_TOKEN" ]; then
+    echo "Error: HUGGING_FACE_TOKEN is not set. Please export it before running the script."
+    exit 1
+  else
+    echo "HUGGING_FACE_TOKEN is set."
+    mv $NETWORK_VOLUME/flux.toml $NETWORK_VOLUME/diffusion_pipe/examples
+    echo "Downloading Flux"
+    mkdir -p $NETWORK_VOLUME/models
+    huggingface-cli download black-forest-labs/FLUX.1-dev flux1-dev.safetensors --local-dir "$NETWORK_VOLUME/models" --token "$HUGGING_FACE_TOKEN" 2>&1 | tee download_log.txt
+    echo "Finished downloading Flux"
+  fi
+fi
+
+rm /*.toml
+
 sleep infinity
