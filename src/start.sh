@@ -30,8 +30,9 @@ fi
 
 # Workspace as main working directory
 echo "cd $NETWORK_VOLUME" >> ~/.bashrc
-mkdir -p $NETWORK_VOLUME/dataset_here
-sed -i "s|path = '/home/anon/data/images/grayscale'|path = '/dataset_here'|" $NETWORK_VOLUME/diffusion_pipe/examples/dataset.toml
+mkdir -p $NETWORK_VOLUME/image_dataset_here
+mkdir -p $NETWORK_VOLUME/video_dataset_here
+sed -i "s|path = '/home/anon/data/images/grayscale'|path = '/image_dataset_here'|" $NETWORK_VOLUME/diffusion_pipe/examples/dataset.toml
 
 
 if [ "$download_wan13" == "true" ]; then
