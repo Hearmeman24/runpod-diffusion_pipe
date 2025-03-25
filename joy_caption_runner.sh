@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e  # Exit immediately if a command exits with a non-zero status
 
+REPO_DIR="/joy-caption-batch"
+REPO_URL="https://github.com/MNeMoNiCuZ/joy-caption-batch.git"
+
+if [ ! -d "$REPO_DIR" ]; then
+    echo "Repository not found. Cloning..."
+    git clone "$REPO_URL" "$REPO_DIR"
+else
+    echo "Repository already exists. Skipping clone."
+fi
+
 # Define variables
 CONDA_ENV_NAME="joy_caption"
 SCRIPT_PATH="/joy-caption-batch/batch-alpha2.py"
@@ -34,10 +44,10 @@ eval "$($CONDA_DIR/bin/conda shell.bash hook)"
 if ! conda env list | grep -q "$CONDA_ENV_NAME"; then
     echo "Creating conda environment: $CONDA_ENV_NAME"
     conda create -y -n $CONDA_ENV_NAME python=3.1
-    
+
     # Activate the environment
     conda activate $CONDA_ENV_NAME
-    
+
     # Install dependencies from requirements.txt
     echo "Installing dependencies from requirements.txt..."
     if [ -f "$REQUIREMENTS_PATH" ]; then
