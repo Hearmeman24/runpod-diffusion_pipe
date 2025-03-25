@@ -5,7 +5,7 @@ fi
 
 cd /
 
-FILE_PATH="/models/flux1-dev.safetensors"
+FILE_PATH="/models/flux/flux1-dev.safetensors"
 
 if [ -f "$FILE_PATH" ]; then
 	echo "Checkpoint found, starting training"

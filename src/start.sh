@@ -81,8 +81,8 @@ if [ "$download_flux" == "true" ]; then
     echo "HUGGING_FACE_TOKEN is set."
     mv $NETWORK_VOLUME/flux.toml $NETWORK_VOLUME/diffusion_pipe/examples
     echo "Downloading Flux"
-    mkdir -p $NETWORK_VOLUME/models
-    huggingface-cli download black-forest-labs/FLUX.1-dev flux1-dev.safetensors --local-dir "$NETWORK_VOLUME/models" --token "$HUGGING_FACE_TOKEN" 2>&1 | tee download_log.txt
+    mkdir -p $NETWORK_VOLUME/models/flux
+    huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir /models/flux --repo-type model --token "$HUGGING_FACE_TOKEN" 2>&1 | tee download_log.txt
     echo "Finished downloading Flux"
   fi
 fi
