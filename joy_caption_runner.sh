@@ -43,7 +43,7 @@ eval "$($CONDA_DIR/bin/conda shell.bash hook)"
 # Check if environment exists
 if ! conda env list | grep -q "$CONDA_ENV_NAME"; then
     echo "Creating conda environment: $CONDA_ENV_NAME"
-    conda create -y -n $CONDA_ENV_NAME python=3.1
+    conda create -y -n $CONDA_ENV_NAME python=3.10
 
     # Activate the environment
     conda activate $CONDA_ENV_NAME
