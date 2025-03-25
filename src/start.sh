@@ -27,8 +27,6 @@ else
     jupyter-lab --ip=0.0.0.0 --allow-root --no-browser --NotebookApp.token='' --NotebookApp.password='' --ServerApp.allow_origin='*' --ServerApp.allow_credentials=True --notebook-dir=/workspace &
 fi
 
-git clone https://github.com/MNeMoNiCuZ/joy-caption-batch.git
-
 
 # Workspace as main working directory
 echo "cd $NETWORK_VOLUME" >> ~/.bashrc
