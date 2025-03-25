@@ -74,19 +74,20 @@ fi
 
 
 if [ "$download_flux" == "true" ]; then
-  if [ -z "$HUGGING_FACE_TOKEN" ]; then
-    echo "Error: HUGGING_FACE_TOKEN is not set. Please export it before running the script."
+  if [ "$HUGGING_FACE_TOKEN" == "token_here" ]; then
+    echo "Error: HUGGING_FACE_TOKEN is set to the default value 'token_here'. Please update it in RunPod's environment variables or set it on your own."
     exit 1
-  else
-    echo "HUGGING_FACE_TOKEN is set."
-    mv $NETWORK_VOLUME/flux.toml $NETWORK_VOLUME/diffusion_pipe/examples
-    echo "Downloading Flux"
-    mkdir -p $NETWORK_VOLUME/models/flux
-    huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir /models/flux --repo-type model --token "$HUGGING_FACE_TOKEN" 2>&1 | tee download_log.txt
-    echo "Finished downloading Flux"
   fi
+
+  echo "HUGGING_FACE_TOKEN is set."
+  mv $NETWORK_VOLUME/flux.toml $NETWORK_VOLUME/diffusion_pipe/examples
+  echo "Downloading Flux"
+  mkdir -p $NETWORK_VOLUME/models/flux
+  huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir /models/flux --repo-type model --token "$HUGGING_FACE_TOKEN" 2>&1 | tee download_log.txt
+  echo "Finished downloading Flux"
 fi
 
+echo "Deleted redundant toml files"
 rm /*.toml
 
 sleep infinity

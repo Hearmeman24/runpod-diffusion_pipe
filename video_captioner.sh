@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e  # Exit immediately if a command exits with a non-zero status
 
-if [ -z "$GEMINI_API_KEY" ]; then
-  echo "Error: GEMINI_API_KEY is not set. Please export it before running the script."
+if [ "$GEMINI_API_KEY" == "token_here" ]; then
+  echo "Error: GEMINI_API_KEY is set to the default value 'token_here'. Please update it in RunPod's environment variables or set it on your own."
   exit 1
 else
   echo "GEMINI_API_KEY is set."
