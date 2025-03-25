@@ -27,13 +27,6 @@ else
     jupyter-lab --ip=0.0.0.0 --allow-root --no-browser --NotebookApp.token='' --NotebookApp.password='' --ServerApp.allow_origin='*' --ServerApp.allow_credentials=True --notebook-dir=/workspace &
 fi
 
-git clone https://github.com/Hearmeman24/TripleX.git
-cd TripleX
-pip install -r requirements.txt
-apt-get update
-apt-get install ffmpeg
-cd $NETWORK_VOLUME
-
 git clone https://github.com/MNeMoNiCuZ/joy-caption-batch.git
 
 
