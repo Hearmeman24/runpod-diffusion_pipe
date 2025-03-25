@@ -74,8 +74,8 @@ fi
 
 
 if [ "$download_flux" == "true" ]; then
-  if [ "$HUGGING_FACE_TOKEN" == "token_here" ]; then
-    echo "Error: HUGGING_FACE_TOKEN is set to the default value 'token_here'. Please update it in RunPod's environment variables or set it on your own."
+  if [ -z "$HUGGING_FACE_TOKEN" ] || [ "$HUGGING_FACE_TOKEN" == "token_here" ]; then
+    echo "Error: HUGGING_FACE_TOKEN is set to the default value 'token_here' or doesn't exist. Please update it in RunPod's environment variables or set it on your own."
     exit 1
   fi
 
