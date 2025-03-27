@@ -21,12 +21,8 @@ rm /diffusion_pipe/examples/*
 mv runpod-diffusion_pipe/dataset.toml /diffusion_pipe/examples
 
 if [ "$download_triton" == "true" ]; then
-echo "Downloading Triton"
-git clone https://github.com/triton-lang/triton.git
-cd triton
-pip install ninja cmake wheel pybind11
-pip install -e python
-cd /
+echo "installing Triton"
+pip install triton
 fi
 
 # Check if NETWORK_VOLUME exists; if not, use root directory instead
