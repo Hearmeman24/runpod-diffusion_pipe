@@ -20,6 +20,15 @@ mv runpod-diffusion_pipe/start_training_scripts /
 rm /diffusion_pipe/examples/*
 mv runpod-diffusion_pipe/dataset.toml /diffusion_pipe/examples
 
+if [ "$download_triton" == "true" ]; then
+echo "Downloading Triton"
+git clone git clone https://github.com/triton-lang/triton.git
+cd triton
+pip install ninja cmake wheel pybind11
+pip install -e python
+cd /
+fi
+
 # Check if NETWORK_VOLUME exists; if not, use root directory instead
 if [ ! -d "$NETWORK_VOLUME" ]; then
     echo "NETWORK_VOLUME directory '$NETWORK_VOLUME' does not exist. You are NOT using a network volume. Setting NETWORK_VOLUME to '/' (root directory)."
