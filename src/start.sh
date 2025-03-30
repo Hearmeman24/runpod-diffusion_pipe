@@ -17,6 +17,7 @@ fi
 NETWORK_VOLUME="/workspace"
 
 mv runpod-diffusion_pipe/start_training_scripts /
+mv runpod-diffusion_pipe/txt_replace.py /
 rm /diffusion_pipe/examples/*
 mv runpod-diffusion_pipe/dataset.toml /diffusion_pipe/examples
 
