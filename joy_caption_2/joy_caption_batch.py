@@ -170,8 +170,9 @@ def get_image_files(directory: Path) -> list:
 
     return sorted(image_files)
 
+system_prompt = r"Write a medium-length straightforward caption for this image. Begin with the main subject and medium. Mention pivotal elements—people, objects, scenery—using confident, definite language. Focus on concrete details like color, shape, texture, and spatial relationships. Show how elements interact. Omit mood and speculative wording. If text is present, quote it exactly. Note any watermarks, signatures, or compression artifacts. Never mention what's absent, resolution, or unobservable details. Vary your sentence structure and keep the description concise, without starting with “This image is…” or similar phrasing. Include information about camera angle. Do NOT mention the image's resolution. Do NOT mention any text that is in the image. Do NOT use any ambiguous language. Do NOT use polite euphemisms—lean into blunt, casual phrasing. Your response will be used by a text-to-image model, so avoid useless meta phrases like “This image shows…”, You are looking at..., etc."
 
-def process_images(input_dir: str, output_dir: str = None, prompt: str = "Write a descriptive caption for this image.",
+def process_images(input_dir: str, output_dir: str = None, prompt: str = system_prompt,
                    skip_existing: bool = True, timeout_minutes: int = 5, trigger_word: str = None):
     """
     Process all images in the input directory and generate captions.
