@@ -8,6 +8,9 @@ else
   echo "GEMINI_API_KEY is set."
 fi
 
+echo "By running this script you're accepting Conda's TOS, if you do not accept those, please stop the script by clicking CTRL c"
+sleep 5
+
 REPO_DIR="/TripleX"
 REPO_URL="https://github.com/Hearmeman24/TripleX.git"
 
@@ -22,7 +25,7 @@ fi
 CONDA_ENV_NAME="TripleX"
 CONDA_ENV_PATH="/tmp/TripleX_miniconda/envs/$CONDA_ENV_NAME"
 SCRIPT_PATH="/TripleX/captioners/gemini.py"
-WORKING_DIR="/video_dataset_here"
+WORKING_DIR="$NETWORK_VOLUME/video_dataset_here"
 REQUIREMENTS_PATH="/TripleX/requirements.txt"
 CONDA_DIR="/tmp/TripleX_miniconda"
 
@@ -44,6 +47,9 @@ fi
 # Initialize conda
 export PATH="$CONDA_DIR/bin:$PATH"
 eval "$($CONDA_DIR/bin/conda shell.bash hook)"
+
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
 # Check if environment exists
 echo "Listing conda environments:"
