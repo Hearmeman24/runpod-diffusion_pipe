@@ -15,6 +15,9 @@ import threading
 from typing import Optional
 import sys
 
+system_prompt = "Write a medium-length descriptive caption for this image in a casual tone. Include information about camera angle. Do NOT mention the image's resolution. Do NOT mention any text that is in the image. Your response will be used by a text-to-image model, so avoid useless meta phrases like \"This image shows…\", \"You are looking at...\", etc."
+
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -107,7 +110,7 @@ class JoyCaptionManager:
         self.timer = threading.Timer(self.timeout, self.unload_model)
         self.timer.start()
 
-    def generate_caption(self, image: Image.Image, prompt: str = "Write a descriptive caption for this image.") -> str:
+    def generate_caption(self, image: Image.Image, prompt: str = system_prompt) -> str:
         self.load_model()
         self.reset_timer()
 
@@ -169,8 +172,6 @@ def get_image_files(directory: Path) -> list:
             image_files.append(file_path)
 
     return sorted(image_files)
-
-system_prompt = "Write a medium-length descriptive caption for this image in a casual tone. Include information about camera angle. Do NOT mention the image's resolution. Do NOT mention any text that is in the image. Your response will be used by a text-to-image model, so avoid useless meta phrases like \"This image shows…\", \"You are looking at...\", etc."
 
 def process_images(input_dir: str, output_dir: str = None, prompt: str = system_prompt,
                    skip_existing: bool = True, timeout_minutes: int = 5, trigger_word: str = None):
