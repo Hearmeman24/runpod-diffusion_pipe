@@ -32,10 +32,5 @@ RUN pip install -r /diffusion_pipe/requirements.txt
 
 # Copy the start script
 COPY src/start_script.sh /start_script.sh
-COPY wan13_video.toml /wan13_video.toml
-COPY wan14b_t2v.toml /wan14b_t2v.toml
-COPY wan14b_i2v.toml /wan14b_i2v.toml
-COPY sdxl.toml /sdxl.toml
-COPY flux.toml /flux.toml
 
 CMD ["/start_script.sh"]
