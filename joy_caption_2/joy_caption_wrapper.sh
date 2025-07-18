@@ -59,6 +59,35 @@ show_help() {
     echo "  $0 --setup-only              # Just setup the environment"
 }
 
+# Function to install system dependencies
+install_system_deps() {
+    log_info "Checking system dependencies..."
+
+    # Check if we need to install python3-venv
+    if ! dpkg -l | grep -q python3-venv 2>/dev/null; then
+        log_info "Installing required system packages..."
+
+        # Update package list
+        if command -v apt &> /dev/null; then
+            log_info "Updating package list..."
+            apt update || {
+                log_warning "Failed to update package list. Continuing anyway..."
+            }
+
+            log_info "Installing python3-venv..."
+            apt install -y python3-venv || {
+                log_error "Failed to install python3-venv. You may need to run this script as root or with sudo."
+                exit 1
+            }
+            log_success "System dependencies installed"
+        else
+            log_warning "apt package manager not found. Assuming dependencies are available."
+        fi
+    else
+        log_info "System dependencies already installed"
+    fi
+}
+
 # Function to check if Python 3.8+ is available
 check_python() {
     if command -v python3 &> /dev/null; then
@@ -200,6 +229,9 @@ done
 # Main execution
 main() {
     log_info "Starting Joy Caption Batch Processing Setup"
+
+    # Install system dependencies first
+    install_system_deps
 
     # Check Python installation
     check_python
