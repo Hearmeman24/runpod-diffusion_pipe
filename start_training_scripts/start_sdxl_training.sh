@@ -5,7 +5,7 @@ fi
 
 cd /
 
-FILE_PATH="/models/sdXL_v10VAEFix.safetensors"
+FILE_PATH="$NETWORK_VOLUME/models/sdXL_v10VAEFix.safetensors"
 
 if [ -f "$FILE_PATH" ]; then
 	echo "Checkpoint found, starting training"

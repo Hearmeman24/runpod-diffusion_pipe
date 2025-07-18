@@ -5,7 +5,7 @@ fi
 
 cd /
 
-FILE_PATH="/Wan/Wan2.1-T2V-14B/diffusion_pytorch_model-00006-of-00006.safetensors"
+FILE_PATH="$NETWORK_VOLUME/Wan/Wan2.1-T2V-14B/diffusion_pytorch_model-00006-of-00006.safetensors"
 
 # This check is stupid and I know it, I'll fix it in the future :) 
 
