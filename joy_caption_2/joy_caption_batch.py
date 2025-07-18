@@ -16,7 +16,7 @@ import threading
 from typing import Optional
 import sys
 
-system_prompt = "Write a medium-length descriptive caption for this image in a casual tone. Include information about camera angle. Do NOT mention the image's resolution. Do NOT mention any text that is in the image. Your response will be used by a text-to-image model, so avoid useless meta phrases like \"This image shows…\", \"You are looking at...\", etc."
+system_prompt = "Write a descriptive caption for this image in a casual tone within 50 words. Do NOT mention any text that is in the image."
 
 # Configure logging
 logging.basicConfig(
