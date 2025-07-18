@@ -80,8 +80,8 @@ mkdir -p "$NETWORK_VOLUME/models"
 
 # Download Wan 1.3B model if requested
 if [ "$download_wan13" == "true" ]; then
-    if [ -f "$NETWORK_VOLUME/toml_files/wan13_video.toml" ]; then
-        mv "$NETWORK_VOLUME/toml_files/wan13_video.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+    if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml" ]; then
+        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
     fi
     echo "Downloading Wan 1.3B model..."
     mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B"
@@ -91,8 +91,8 @@ fi
 
 # Download Wan 14B T2V model if requested
 if [ "$download_wan14B_t2v" == "true" ]; then
-    if [ -f "$NETWORK_VOLUME/toml_files/wan14b_t2v.toml" ]; then
-        mv "$NETWORK_VOLUME/toml_files/wan14b_t2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+    if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml" ]; then
+        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
     fi
     echo "Downloading Wan 14B T2V model..."
     mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B"
@@ -102,8 +102,8 @@ fi
 
 # Download Wan 14B I2V model if requested
 if [ "$download_wan14B_i2v_480p" == "true" ]; then
-    if [ -f "$NETWORK_VOLUME/toml_files/wan14b_i2v.toml" ]; then
-        mv "$NETWORK_VOLUME/toml_files/wan14b_i2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+    if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml" ]; then
+        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
     fi
     echo "Downloading Wan 14B I2V model..."
     mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P"
@@ -113,8 +113,8 @@ fi
 
 # Download base SDXL if requested
 if [ "$download_base_sdxl" == "true" ]; then
-    if [ -f "$NETWORK_VOLUME/toml_files/sdxl.toml" ]; then
-        mv "$NETWORK_VOLUME/toml_files/sdxl.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+    if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml" ]; then
+        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
     fi
     echo "Downloading Base SDXL..."
     huggingface-cli download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" 2>&1 | tee "$NETWORK_VOLUME/download_log.txt"
@@ -129,8 +129,8 @@ if [ "$download_flux" == "true" ]; then
     fi
 
     echo "HUGGING_FACE_TOKEN is set."
-    if [ -f "$NETWORK_VOLUME/toml_files/flux.toml" ]; then
-        mv "$NETWORK_VOLUME/toml_files/flux.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+    if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml" ]; then
+        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
     fi
     echo "Downloading Flux..."
     mkdir -p "$NETWORK_VOLUME/models/flux"
