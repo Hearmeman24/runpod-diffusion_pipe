@@ -30,7 +30,6 @@ RUN git clone --recurse-submodules https://github.com/tdrussell/diffusion-pipe /
 RUN pip install -r /diffusion_pipe/requirements.txt
 
 
-# Copy start script
 COPY src/start_script.sh /start_script.sh
-
+RUN chmod +x /start_script.sh
 CMD ["/start_script.sh"]
