@@ -4,11 +4,11 @@ The Joy Caption Wrapper automatically processes images in your dataset directory
 
 Basic Usage:
 # Process images in the default directory (image_dataset_here)
-./joy_caption_wrapper.sh
+bash joy_caption_wrapper.sh
 # Process images in a specific directory
-./joy_caption_wrapper.sh /path/to/your/images
+bash joy_caption_wrapper.sh /path/to/your/images
 # Process with a trigger word (adds "Trigger Word" to the start of each caption)
-./joy_caption_wrapper.sh --trigger-word "Alice"
+bash joy_caption_wrapper.sh --trigger-word "Alice"
 
 Command Options:
 --trigger-word
@@ -23,8 +23,8 @@ Command Options:
 
 Examples:
 Basic usage (uses default image directory):
-  ./joy_caption_wrapper.sh
+  bash joy_caption_wrapper.sh
 Process specific directory with trigger word:
-  ./joy_caption_wrapper.sh /my/images --trigger-word "character"
+  bash joy_caption_wrapper.sh /my/images --trigger-word "character"
 Just setup the environment for first time:
-  ./joy_caption_wrapper.sh --setup-only
+  bash joy_caption_wrapper.sh --setup-only
