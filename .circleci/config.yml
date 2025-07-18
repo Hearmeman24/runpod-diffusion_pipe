@@ -3,7 +3,6 @@ version: 2.1
 
 executors:
   docker-dind:
-    # machine executor gives you full Docker daemon + BuildKit
     machine:
       image: ubuntu-2404:current
       docker_layer_caching: true
