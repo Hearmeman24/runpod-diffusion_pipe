@@ -1,0 +1,41 @@
+# Output path for training runs. Each training run makes a new directory in here.
+output_dir = '/data/diffusion_pipe_training_runs/sdxl_lora'
+
+save_every_n_epochs = 10
+epochs = 100  
+micro_batch_size_per_gpu = 2  
+gradient_accumulation_steps = 1  
+#gradient_release=true
+activation_checkpointing = true
+#blocks_to_swap = 2 
+dataset = 'examples/dataset.toml'
+
+[model]
+type = 'sdxl'
+checkpoint_path = '/models/sdXL_v10VAEFix.safetensors'
+dtype = 'bfloat16'
+# You can train v-prediction models (e.g. NoobAI vpred) by setting this option.
+#v_pred = true
+# Min SNR is supported. Same meaning as sd-scripts
+#min_snr_gamma = 5
+# Debiased estimation loss is supported. Same meaning as sd-scripts.
+#debiased_estimation_loss = true
+# You can set separate learning rates for unet and text encoders. If one of these isn't set, the optimizer learning rate will apply.
+unet_lr = 1e-4
+text_encoder_1_lr = 1e-4
+text_encoder_2_lr = 1e-4
+
+
+[adapter]
+type = "lora"  
+rank = 8  
+#dropout = 0.1  
+dtype = "bfloat16"  
+# init_from_existing = "path/to/pretrained/lora"  
+
+
+
+[optimizer]
+type = "adamw8bit"  
+lr = 0.0002  # Learning rate
+#gradient_clipping = 1.0  
