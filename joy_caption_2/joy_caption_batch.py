@@ -170,17 +170,7 @@ def get_image_files(directory: Path) -> list:
 
     return sorted(image_files)
 
-system_prompt = 'Write a medium-length straightforward caption for this image. '
-'Begin with the main subject and medium. '
-'Mention pivotal elements—people, objects, scenery—using confident, definite language. '
-'Focus on concrete details like color, shape, texture, and spatial relationships. '
-'Show how elements interact. '
-'Omit mood and speculative wording. '
-'Never mention what\'s absent, resolution, or unobservable details. '
-'Vary your sentence structure and keep the description concise, without starting with "This image is…" or similar phrasing. '
-'Include information about camera angle. '
-'Do NOT mention the image\'s resolution. '
-'Do NOT mention any text that is in the image.'
+system_prompt = "Write a medium-length descriptive caption for this image in a casual tone. Include information about camera angle. Do NOT mention the image's resolution. Do NOT mention any text that is in the image. Your response will be used by a text-to-image model, so avoid useless meta phrases like \"This image shows…\", \"You are looking at...\", etc."
 
 def process_images(input_dir: str, output_dir: str = None, prompt: str = system_prompt,
                    skip_existing: bool = True, timeout_minutes: int = 5, trigger_word: str = None):
@@ -281,18 +271,10 @@ def main():
     parser.add_argument('--output-dir', help='Directory to save caption files (defaults to input directory)')
     parser.add_argument(
         '--prompt',
-        default=(
-            'Write a medium-length straightforward caption for this image. '
-            'Begin with the main subject and medium. '
-            'Mention pivotal elements—people, objects, scenery—using confident, definite language. '
-            'Focus on concrete details like color, shape, texture, and spatial relationships. '
-            'Show how elements interact. '
-            'Omit mood and speculative wording. '
-            'Never mention what\'s absent, resolution, or unobservable details. '
-            'Vary your sentence structure and keep the description concise, without starting with "This image is…" or similar phrasing. '
-            'Include information about camera angle. '
-            'Do NOT mention the image\'s resolution. '
-            'Do NOT mention any text that is in the image.'
+        default=("Write a medium-length descriptive caption for this image in a casual tone."
+                 " Include information about camera angle. Do NOT mention the image's resolution."
+                 " Do NOT mention any text that is in the image."
+                 " Your response will be used by a text-to-image model, so avoid useless meta phrases like \"This image shows…\", \"You are looking at...\", etc."
         ),
         help='Caption generation prompt'
     )

@@ -64,7 +64,7 @@ show_help() {
     echo ""
     echo "Options:"
     echo "  --output-dir DIR             Directory to save caption files (default: same as input)"
-    echo "  --prompt TEXT                Caption generation prompt (default: 'Write a medium-length straightforward caption for this image. Begin with the main subject and medium. Mention pivotal elements—people, objects, scenery—using confident, definite language. Focus on concrete details like color, shape, texture, and spatial relationships. Show how elements interact. Omit mood and speculative wording. Never mention what's absent, resolution, or unobservable details. Vary your sentence structure and keep the description concise, without starting with “This image is…” or similar phrasing. Include information about camera angle. Do NOT mention the image's resolution. Do NOT mention any text that is in the image."
+    echo "  --prompt TEXT                Caption generation prompt (default: Write a medium-length descriptive caption for this image in a casual tone. Include information about camera angle. Do NOT mention the image's resolution. Do NOT mention any text that is in the image. Your response will be used by a text-to-image model, so avoid useless meta phrases like \"This image shows…\", \"You are looking at...\", etc."
     echo "  --trigger-word WORD          Trigger word to prepend to captions (e.g., 'Alice' -> 'Alice, <caption>')"
     echo "  --no-skip-existing           Process all images even if caption files already exist"
     echo "  --setup-only                 Only setup the environment, don't run captioning"
