@@ -15,6 +15,8 @@ else
     NETWORK_VOLUME="/workspace/diffusion_pipe_working_folder"
 fi
 
+export NETWORK_VOLUME
+
 # Start Jupyter Lab with the working folder as the root directory
 # This puts users directly in their working environment and hides system files
 jupyter-lab --ip=0.0.0.0 --allow-root --no-browser \

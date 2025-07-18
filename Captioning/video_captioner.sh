@@ -35,7 +35,7 @@ echo "Starting process..."
 if [ ! -d "$CONDA_DIR" ]; then
     echo "Conda not found. Installing Miniconda..."
     MINICONDA_PATH="/tmp/triplex/miniconda.sh"
-    mkdir -p $"/tmp/triplex"
+    mkdir -p "/tmp/triplex"
     curl -sSL https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o $MINICONDA_PATH
     bash $MINICONDA_PATH -b -p $CONDA_DIR
     rm $MINICONDA_PATH
