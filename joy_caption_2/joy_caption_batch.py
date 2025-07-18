@@ -31,7 +31,13 @@ class JoyCaptionManager:
     def __init__(self, timeout_minutes: int = 5):
         self.model = None
         self.processor = None
-        self.device = "mps" if torch.backends.mps.is_available() else "cpu"
+        # Proper device detection: CUDA > MPS > CPU
+        if torch.cuda.is_available():
+            self.device = "cuda"
+        elif torch.backends.mps.is_available():
+            self.device = "mps"
+        else:
+            self.device = "cpu"
         self.timeout = timeout_minutes * 60
         self.timer: Optional[threading.Timer] = None
         self.lock = threading.Lock()
@@ -56,7 +62,7 @@ class JoyCaptionManager:
                     self.model = LlavaForConditionalGeneration.from_pretrained(
                         self.model_name,
                         torch_dtype=torch.float16,
-                        device_map="auto" if self.device != "mps" else None,
+                        device_map="auto" if self.device == "cuda" else None,
                         trust_remote_code=True,
                         low_cpu_mem_usage=True
                     )
@@ -67,7 +73,8 @@ class JoyCaptionManager:
                         tok.pad_token = tok.eos_token
                         self.model.config.pad_token_id = tok.eos_token_id
 
-                    if self.device == "mps":
+                    # Move model to device if not using device_map="auto"
+                    if self.device != "cuda":
                         self.model = self.model.to(self.device)
 
                     logger.info(f"Model loaded successfully on {self.device}")
@@ -85,10 +92,11 @@ class JoyCaptionManager:
                 self.model = None
                 self.processor = None
 
-                if torch.backends.mps.is_available():
-                    torch.mps.empty_cache()
-                elif torch.cuda.is_available():
+                # Clear cache based on device
+                if torch.cuda.is_available():
                     torch.cuda.empty_cache()
+                elif torch.backends.mps.is_available():
+                    torch.mps.empty_cache()
 
                 gc.collect()
                 logger.info("Model unloaded successfully")
@@ -124,9 +132,8 @@ class JoyCaptionManager:
                 padding=True
             )
 
-            # Move to device
-            if self.device == "mps":
-                inputs = {k: v.to(self.device) if isinstance(v, torch.Tensor) else v for k, v in inputs.items()}
+            # Move inputs to the same device as the model
+            inputs = {k: v.to(self.device) if isinstance(v, torch.Tensor) else v for k, v in inputs.items()}
 
             logging.info("Generating caption...")
             with torch.no_grad():
