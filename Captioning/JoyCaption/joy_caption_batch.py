@@ -172,11 +172,12 @@ class JoyCaptionManager:
 
 
 def get_image_files(directory: Path) -> list:
-    """Get all image files from the directory."""
+    """Get all image files from the directory (not including subdirectories)."""
     supported_formats = {'.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.webp'}
     image_files = []
 
-    for file_path in directory.rglob('*'):
+    # Only check files in the immediate directory, not subdirectories
+    for file_path in directory.iterdir():
         if file_path.is_file() and file_path.suffix.lower() in supported_formats:
             image_files.append(file_path)
 
