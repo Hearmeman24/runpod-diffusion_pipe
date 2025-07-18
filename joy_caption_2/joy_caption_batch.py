@@ -269,8 +269,28 @@ def main():
     parser = argparse.ArgumentParser(description='Batch process images with JoyCaption')
     parser.add_argument('input_dir', help='Directory containing images to process')
     parser.add_argument('--output-dir', help='Directory to save caption files (defaults to input directory)')
-    parser.add_argument('--prompt', default='Write a descriptive caption for this image.',
-                        help='Caption generation prompt')
+    parser.add_argument(
+        '--prompt',
+        default=(
+            'Write a medium-length straightforward caption for this image. '
+            'Begin with the main subject and medium. '
+            'Mention pivotal elements—people, objects, scenery—using confident, definite language. '
+            'Focus on concrete details like color, shape, texture, and spatial relationships. '
+            'Show how elements interact. '
+            'Omit mood and speculative wording. '
+            'If text is present, quote it exactly. '
+            'Note any watermarks, signatures, or compression artifacts. '
+            'Never mention what\'s absent, resolution, or unobservable details. '
+            'Vary your sentence structure and keep the description concise, without starting with "This image is…" or similar phrasing. '
+            'Include information about camera angle. '
+            'Do NOT mention the image\'s resolution. '
+            'Do NOT mention any text that is in the image. '
+            'Do NOT use any ambiguous language. '
+            'Do NOT use polite euphemisms—lean into blunt, casual phrasing. '
+            'Your response will be used by a text-to-image model, so avoid useless meta phrases like "This image shows…", "You are looking at...", etc.'
+        ),
+        help='Caption generation prompt'
+    )
     parser.add_argument('--trigger-word',
                         help='Trigger word to prepend to generated captions (e.g., "claude" -> "claude, <caption>")')
     parser.add_argument('--no-skip-existing', action='store_true',
