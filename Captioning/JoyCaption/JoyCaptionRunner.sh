@@ -7,6 +7,25 @@ VENV_DIR="$SCRIPT_DIR/joy_caption_env"
 PYTHON_SCRIPT="$SCRIPT_DIR/joy_caption_batch.py"
 REQUIREMENTS_FILE="$SCRIPT_DIR/requirements.txt"
 
+# Default image directory detection
+detect_default_image_dir() {
+    # First check if NETWORK_VOLUME is set
+    if [[ -n "$NETWORK_VOLUME" && -d "$NETWORK_VOLUME/image_dataset_here" ]]; then
+        echo "$NETWORK_VOLUME/image_dataset_here"
+    # Check for workspace volume
+    elif [[ -d "/workspace/diffusion_pipe_working_folder/image_dataset_here" ]]; then
+        echo "/workspace/diffusion_pipe_working_folder/image_dataset_here"
+    # Check for local volume
+    elif [[ -d "/diffusion_pipe_working_folder/image_dataset_here" ]]; then
+        echo "/diffusion_pipe_working_folder/image_dataset_here"
+    # Fallback to current directory
+    else
+        echo "."
+    fi
+}
+
+DEFAULT_IMAGE_DIR=$(detect_default_image_dir)
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -37,26 +56,33 @@ show_help() {
     echo ""
     echo "This script sets up a virtual environment and runs the Joy Caption batch processor."
     echo ""
-    echo "Usage: $0 INPUT_DIR [OPTIONS]"
+    echo "Usage: $0 [INPUT_DIR] [OPTIONS]"
     echo ""
-    echo "Required:"
+    echo "Optional:"
     echo "  INPUT_DIR                    Directory containing images to process"
+    echo "                              (default: $DEFAULT_IMAGE_DIR)"
     echo ""
     echo "Options:"
     echo "  --output-dir DIR             Directory to save caption files (default: same as input)"
-    echo "  --prompt TEXT                Caption generation prompt (default: 'Write a descriptive caption for this image.')"
-    echo "  --trigger-word WORD          Trigger word to prepend to captions (e.g., 'claude' -> 'claude, <caption>')"
+    echo "  --prompt TEXT                Caption generation prompt (default: Write a descriptive caption for this image in a casual tone within 50 words. Do NOT mention any text that is in the image."
+    echo "  --trigger-word WORD          Trigger word to prepend to captions (e.g., 'Alice' -> 'Alice, <caption>')"
     echo "  --no-skip-existing           Process all images even if caption files already exist"
-    echo "  --timeout MINUTES            Model unload timeout in minutes (default: 5)"
     echo "  --setup-only                 Only setup the environment, don't run captioning"
     echo "  --force-reinstall            Force reinstall of all requirements"
     echo "  -h, --help                   Show this help message"
     echo ""
     echo "Examples:"
+    echo "  $0                           # Use default image directory: $DEFAULT_IMAGE_DIR"
     echo "  $0 /path/to/images"
-    echo "  $0 /path/to/images --trigger-word 'claude' --output-dir /path/to/captions"
+    echo "  $0 --trigger-word 'claude' --output-dir /path/to/captions"
     echo "  $0 /path/to/images --prompt 'Describe this image in detail.' --timeout 10"
     echo "  $0 --setup-only              # Just setup the environment"
+    echo ""
+    echo "Default image directory detection:"
+    echo "  1. \$NETWORK_VOLUME/image_dataset_here (if NETWORK_VOLUME is set)"
+    echo "  2. /workspace/diffusion_pipe_working_folder/image_dataset_here"
+    echo "  3. /diffusion_pipe_working_folder/image_dataset_here"
+    echo "  4. Current directory (.)"
 }
 
 # Function to install system dependencies
@@ -221,6 +247,7 @@ run_captioning() {
 SETUP_ONLY=false
 FORCE_REINSTALL=false
 SCRIPT_ARGS=()
+INPUT_DIR_SPECIFIED=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -236,8 +263,28 @@ while [[ $# -gt 0 ]]; do
             FORCE_REINSTALL=true
             shift
             ;;
-        *)
+        --output-dir|--prompt|--trigger-word|--timeout)
+            # These are options that take values, add both the option and its value
             SCRIPT_ARGS+=("$1")
+            shift
+            if [[ $# -gt 0 ]]; then
+                SCRIPT_ARGS+=("$1")
+                shift
+            fi
+            ;;
+        --no-skip-existing)
+            # This is a flag option
+            SCRIPT_ARGS+=("$1")
+            shift
+            ;;
+        *)
+            # Check if this looks like a directory path (first positional argument)
+            if [[ ! "$INPUT_DIR_SPECIFIED" == "true" && ! "$1" =~ ^-- ]]; then
+                INPUT_DIR_SPECIFIED=true
+                SCRIPT_ARGS+=("$1")
+            else
+                SCRIPT_ARGS+=("$1")
+            fi
             shift
             ;;
     esac
@@ -265,16 +312,26 @@ main() {
         exit 0
     fi
 
-    # Check if we have arguments to process
-    if [[ ${#SCRIPT_ARGS[@]} -eq 0 ]]; then
-        log_error "No input directory specified"
-        echo ""
-        show_help
-        exit 1
-    fi
-
     # Check if Python script exists
     check_python_script
+
+    # If no input directory was specified, use the default
+    if [[ "$INPUT_DIR_SPECIFIED" == "false" ]]; then
+        log_info "No input directory specified, using default: $DEFAULT_IMAGE_DIR"
+
+        # Check if the default directory exists
+        if [[ ! -d "$DEFAULT_IMAGE_DIR" ]]; then
+            log_warning "Default image directory does not exist: $DEFAULT_IMAGE_DIR"
+            log_info "Creating directory: $DEFAULT_IMAGE_DIR"
+            mkdir -p "$DEFAULT_IMAGE_DIR" || {
+                log_error "Failed to create directory: $DEFAULT_IMAGE_DIR"
+                exit 1
+            }
+        fi
+
+        # Add the default directory as the first argument
+        SCRIPT_ARGS=("$DEFAULT_IMAGE_DIR" "${SCRIPT_ARGS[@]}")
+    fi
 
     # Run the captioning script with all arguments
     run_captioning "${SCRIPT_ARGS[@]}"

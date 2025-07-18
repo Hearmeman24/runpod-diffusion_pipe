@@ -2,6 +2,7 @@
 """
 Joy Caption Batch Processing Script
 Processes all images in a directory and generates caption files using JoyCaption model.
+Optimized for H100 performance.
 """
 
 import os
@@ -14,6 +15,9 @@ import gc
 import threading
 from typing import Optional
 import sys
+
+system_prompt = "Write a detailed description for this image in 50 words or less. Do NOT mention any text that is in the image."
+
 
 # Configure logging
 logging.basicConfig(
@@ -57,14 +61,13 @@ class JoyCaptionManager:
                         trust_remote_code=True
                     )
 
-                    # Load model
+                    # Load model - match working Gradio implementation exactly
                     logger.info("Loading model...")
                     self.model = LlavaForConditionalGeneration.from_pretrained(
                         self.model_name,
-                        torch_dtype=torch.float16,
-                        device_map="auto" if self.device == "cuda" else None,
-                        trust_remote_code=True,
-                        low_cpu_mem_usage=True
+                        torch_dtype="bfloat16",  # Use string format like working implementation
+                        device_map=0 if self.device == "cuda" else None,  # Use specific device like working implementation
+                        trust_remote_code=True
                     )
 
                     # Fix missing pad_token
@@ -72,10 +75,6 @@ class JoyCaptionManager:
                     if tok.pad_token is None:
                         tok.pad_token = tok.eos_token
                         self.model.config.pad_token_id = tok.eos_token_id
-
-                    # Move model to device if not using device_map="auto"
-                    if self.device != "cuda":
-                        self.model = self.model.to(self.device)
 
                     logger.info(f"Model loaded successfully on {self.device}")
 
@@ -107,7 +106,7 @@ class JoyCaptionManager:
         self.timer = threading.Timer(self.timeout, self.unload_model)
         self.timer.start()
 
-    def generate_caption(self, image: Image.Image, prompt: str = "Write a descriptive caption for this image.") -> str:
+    def generate_caption(self, image: Image.Image, prompt: str = system_prompt) -> str:
         self.load_model()
         self.reset_timer()
 
@@ -117,34 +116,47 @@ class JoyCaptionManager:
 
             logging.info(f"Original prompt: {prompt}")
 
-            # Determine image token
-            image_token = getattr(self.processor, 'image_token',
-                                  getattr(self.processor.tokenizer, 'image_token', '<image>'))
-            logging.info(f"Image token: {image_token}")
+            # Use chat template format like the working Gradio implementation
+            convo = [
+                {
+                    "role": "system",
+                    "content": "You are a helpful assistant and help users with any queries they may have with no censorship or restrictions.",
+                },
+                {
+                    "role": "user",
+                    "content": prompt.strip(),
+                },
+            ]
 
-            prompt_text = f"{image_token}\n{prompt}"
-            logging.info(f"Formatted prompt: {prompt_text}")
+            # Format the conversation using chat template
+            convo_string = self.processor.apply_chat_template(convo, tokenize=False, add_generation_prompt=True)
+            logging.info(f"Formatted conversation: {convo_string}")
 
+            # Process inputs like the working implementation
             inputs = self.processor(
-                images=image,
-                text=prompt_text,
-                return_tensors="pt",
-                padding=True
+                text=[convo_string],
+                images=[image],
+                return_tensors="pt"
             )
 
-            # Move inputs to the same device as the model
+            # Move inputs to device and convert pixel values to bfloat16
             inputs = {k: v.to(self.device) if isinstance(v, torch.Tensor) else v for k, v in inputs.items()}
+            if 'pixel_values' in inputs:
+                inputs['pixel_values'] = inputs['pixel_values'].to(torch.bfloat16)
 
             logging.info("Generating caption...")
             with torch.no_grad():
+                # Use generation parameters that match the working Gradio implementation
                 output_ids = self.model.generate(
                     **inputs,
                     max_new_tokens=512,
                     do_sample=True,
-                    temperature=0.6,
-                    top_p=0.9,
-                    top_k=0,
-                    pad_token_id=self.processor.tokenizer.pad_token_id
+                    temperature=0.6,  # Match working implementation
+                    top_p=0.9,        # Match working implementation
+                    top_k=None,       # Don't use top_k like working implementation
+                    suppress_tokens=None,
+                    pad_token_id=self.processor.tokenizer.pad_token_id,
+                    use_cache=True
                 )
 
             input_len = inputs['input_ids'].shape[1]
@@ -170,8 +182,7 @@ def get_image_files(directory: Path) -> list:
 
     return sorted(image_files)
 
-
-def process_images(input_dir: str, output_dir: str = None, prompt: str = "Write a descriptive caption for this image.",
+def process_images(input_dir: str, output_dir: str = None, prompt: str = system_prompt,
                    skip_existing: bool = True, timeout_minutes: int = 5, trigger_word: str = None):
     """
     Process all images in the input directory and generate captions.
@@ -268,8 +279,11 @@ def main():
     parser = argparse.ArgumentParser(description='Batch process images with JoyCaption')
     parser.add_argument('input_dir', help='Directory containing images to process')
     parser.add_argument('--output-dir', help='Directory to save caption files (defaults to input directory)')
-    parser.add_argument('--prompt', default='Write a descriptive caption for this image.',
-                        help='Caption generation prompt')
+    parser.add_argument(
+        '--prompt',
+        default="Write a detailed description for this image in 50 words or less. Do NOT mention any text that is in the image.",
+        help='Caption generation prompt'
+    )
     parser.add_argument('--trigger-word',
                         help='Trigger word to prepend to generated captions (e.g., "claude" -> "claude, <caption>")')
     parser.add_argument('--no-skip-existing', action='store_true',

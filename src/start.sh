@@ -26,6 +26,7 @@ jupyter-lab --ip=0.0.0.0 --allow-root --no-browser \
 if [ -d "/tmp/runpod-diffusion_pipe" ]; then
     # Move the entire repository to working directory
     mv /tmp/runpod-diffusion_pipe "$NETWORK_VOLUME/"
+    mv "$NETWORK_VOLUME/runpod-diffusion_pipe/Captioning" "$NETWORK_VOLUME/"
 
     # Move diffusion_pipe if it exists in root to working directory
     if [ -d "/diffusion_pipe" ]; then
