@@ -2,6 +2,7 @@
 """
 Joy Caption Batch Processing Script
 Processes all images in a directory and generates caption files using JoyCaption model.
+Optimized for H100 performance.
 """
 
 import os
@@ -16,7 +17,6 @@ from typing import Optional
 import sys
 
 system_prompt = "Write a medium-length descriptive caption for this image in a casual tone. Include information about camera angle. Do NOT mention the image's resolution. Do NOT mention any text that is in the image. Your response will be used by a text-to-image model, so avoid useless meta phrases like \"This image shows…\", \"You are looking at...\", etc."
-
 
 # Configure logging
 logging.basicConfig(
@@ -60,14 +60,14 @@ class JoyCaptionManager:
                         trust_remote_code=True
                     )
 
-                    # Load model
+                    # Load model - optimized for H100 performance
                     logger.info("Loading model...")
                     self.model = LlavaForConditionalGeneration.from_pretrained(
                         self.model_name,
-                        torch_dtype=torch.float16,
-                        device_map="auto" if self.device == "cuda" else None,
+                        torch_dtype=torch.bfloat16,  # Use bfloat16 for better H100 performance
+                        device_map="auto",  # Always use device_map for H100
                         trust_remote_code=True,
-                        low_cpu_mem_usage=True
+                        attn_implementation="flash_attention_2"  # Enable Flash Attention 2 for speed
                     )
 
                     # Fix missing pad_token
@@ -76,15 +76,29 @@ class JoyCaptionManager:
                         tok.pad_token = tok.eos_token
                         self.model.config.pad_token_id = tok.eos_token_id
 
-                    # Move model to device if not using device_map="auto"
-                    if self.device != "cuda":
-                        self.model = self.model.to(self.device)
-
-                    logger.info(f"Model loaded successfully on {self.device}")
+                    logger.info(f"Model loaded successfully on {self.device} with Flash Attention 2")
 
                 except Exception as e:
-                    logger.error(f"Failed to load model: {e}")
-                    raise
+                    logger.warning(f"Failed to load with Flash Attention 2, falling back to standard attention: {e}")
+                    # Fallback without Flash Attention
+                    try:
+                        self.model = LlavaForConditionalGeneration.from_pretrained(
+                            self.model_name,
+                            torch_dtype=torch.bfloat16,
+                            device_map="auto",
+                            trust_remote_code=True
+                        )
+
+                        # Fix missing pad_token
+                        tok = self.processor.tokenizer
+                        if tok.pad_token is None:
+                            tok.pad_token = tok.eos_token
+                            self.model.config.pad_token_id = tok.eos_token_id
+
+                        logger.info(f"Model loaded successfully on {self.device}")
+                    except Exception as e2:
+                        logger.error(f"Failed to load model: {e2}")
+                        raise
 
     def unload_model(self):
         with self.lock:
@@ -140,14 +154,17 @@ class JoyCaptionManager:
 
             logging.info("Generating caption...")
             with torch.no_grad():
+                # Optimized generation parameters for quality
                 output_ids = self.model.generate(
                     **inputs,
                     max_new_tokens=512,
                     do_sample=True,
-                    temperature=0.6,
-                    top_p=0.9,
-                    top_k=0,
-                    pad_token_id=self.processor.tokenizer.pad_token_id
+                    temperature=0.7,  # Slightly higher for more creative captions
+                    top_p=0.95,  # Increased for better quality
+                    top_k=50,  # Enable top_k for better quality
+                    repetition_penalty=1.1,  # Prevent repetition
+                    pad_token_id=self.processor.tokenizer.pad_token_id,
+                    use_cache=True  # Enable KV cache for speed
                 )
 
             input_len = inputs['input_ids'].shape[1]
@@ -172,6 +189,7 @@ def get_image_files(directory: Path) -> list:
             image_files.append(file_path)
 
     return sorted(image_files)
+
 
 def process_images(input_dir: str, output_dir: str = None, prompt: str = system_prompt,
                    skip_existing: bool = True, timeout_minutes: int = 5, trigger_word: str = None):
@@ -276,7 +294,7 @@ def main():
                  " Include information about camera angle. Do NOT mention the image's resolution."
                  " Do NOT mention any text that is in the image."
                  " Your response will be used by a text-to-image model, so avoid useless meta phrases like \"This image shows…\", \"You are looking at...\", etc."
-        ),
+                 ),
         help='Caption generation prompt'
     )
     parser.add_argument('--trigger-word',
