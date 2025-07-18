@@ -140,13 +140,30 @@ setup_venv() {
         rm -rf "$VENV_DIR"
     fi
 
-    # Create virtual environment if it doesn't exist
+    # Check if venv exists and is valid
+    if [[ -d "$VENV_DIR" ]]; then
+        if [[ ! -f "$VENV_DIR/bin/activate" ]]; then
+            log_warning "Virtual environment appears corrupted (missing activate script)"
+            log_info "Removing corrupted virtual environment..."
+            rm -rf "$VENV_DIR"
+        else
+            log_info "Virtual environment already exists and appears valid"
+        fi
+    fi
+
+    # Create virtual environment if it doesn't exist or was removed
     if [[ ! -d "$VENV_DIR" ]]; then
         log_info "Creating virtual environment at $VENV_DIR"
         $PYTHON_CMD -m venv "$VENV_DIR"
-        log_success "Virtual environment created"
-    else
-        log_info "Virtual environment already exists"
+
+        # Verify creation was successful
+        if [[ ! -f "$VENV_DIR/bin/activate" ]]; then
+            log_error "Failed to create virtual environment properly"
+            log_error "The activate script was not created"
+            exit 1
+        fi
+
+        log_success "Virtual environment created successfully"
     fi
 
     # Activate virtual environment
