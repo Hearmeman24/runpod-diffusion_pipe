@@ -21,7 +21,7 @@ Step 4: Wait for Completion
 The script automatically downloads models, generates captions, and starts training.
 
 RESULTS
-Your trained LoRA files will be saved in: diffusion_pipe/data/
+Your trained LoRA files will be saved in: training_outputs
 
 PREPARATION
 Place your training data in:
