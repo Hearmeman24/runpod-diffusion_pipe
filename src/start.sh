@@ -73,6 +73,10 @@ if [ -d "/tmp/runpod-diffusion_pipe" ]; then
         chmod +x "$NETWORK_VOLUME/interactive_start_training.sh"
     fi
 
+    if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/HowToUse.txt" ]; then
+        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/HowToUse.txt" "$NETWORK_VOLUME/"
+    fi
+
     # Set up send_lora.sh script
     if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/send_lora.sh" ]; then
         chmod +x "$NETWORK_VOLUME/runpod-diffusion_pipe/send_lora.sh"
