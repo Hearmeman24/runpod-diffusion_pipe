@@ -1,0 +1,33 @@
+HearmemanAI LoRA Trainer using Diffusion Pipe - Quick Start Guide
+
+GETTING STARTED
+
+Step 1: Open Terminal and enter bash shell
+Click the Terminal button to open a command prompt.
+Type bash
+Click ENTER
+
+Step 2: Start Training
+Type: bash interactive_start_training.sh
+
+Step 3: Follow Instructions
+The script will guide you through:
+- Model selection (Flux, SDXL, or Wan models)
+- API keys (Hugging Face for Flux, Gemini for videos)
+- Dataset options (image/video captioning)
+- Training configuration review
+
+Step 4: Wait for Completion
+The script automatically downloads models, generates captions, and starts training.
+
+RESULTS
+Your trained LoRA files will be saved in: diffusion_pipe/data/
+
+PREPARATION
+Place your training data in:
+- Images: image_dataset_here/ folder
+- Videos: video_dataset_here/ folder
+
+TIPS
+- Have API keys ready before starting
+- First run takes longer due to model downloads
