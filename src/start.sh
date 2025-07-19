@@ -66,12 +66,9 @@ if [ -d "/tmp/runpod-diffusion_pipe" ]; then
     fi
 
     # Move training scripts and utilities
-    if [ -d "$NETWORK_VOLUME/runpod-diffusion_pipe/start_training_scripts" ]; then
-        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/start_training_scripts" "$NETWORK_VOLUME/"
-    fi
-
-    if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/txt_replace.py" ]; then
-        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/txt_replace.py" "$NETWORK_VOLUME/"
+    if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/interactive_start_training.sh" ]; then
+        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/interactive_start_training.sh" "$NETWORK_VOLUME/"
+        chmod +x "$NETWORK_VOLUME/interactive_start_training.sh"
     fi
 
     # Set up send_lora.sh script
