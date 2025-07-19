@@ -38,6 +38,31 @@ if [ -d "/tmp/runpod-diffusion_pipe" ]; then
     # Set up directory structure
     DIFF_PIPE_DIR="$NETWORK_VOLUME/diffusion_pipe"
 
+
+    echo "Updating TOML file paths..."
+    TOML_DIR="$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files"
+    if [ -d "$TOML_DIR" ]; then
+        # Update paths in TOML files to use NETWORK_VOLUME
+        for toml_file in "$TOML_DIR"/*.toml; do
+            if [ -f "$toml_file" ]; then
+                echo "Processing: $(basename "$toml_file")"
+                # Create backup
+                cp "$toml_file" "$toml_file.backup"
+
+                # Update various path patterns - replace absolute paths with NETWORK_VOLUME paths
+                sed -i "s|diffusers_path = '/models/|diffusers_path = '$NETWORK_VOLUME/models/|g" "$toml_file"
+                sed -i "s|ckpt_path = '/Wan/|ckpt_path = '$NETWORK_VOLUME/models/Wan/|g" "$toml_file"
+                sed -i "s|checkpoint_path = '/models/|checkpoint_path = '$NETWORK_VOLUME/models/|g" "$toml_file"
+                sed -i "s|output_dir = '/data/|output_dir = '$NETWORK_VOLUME/training_outputs/|g" "$toml_file"
+
+                # Handle commented paths too
+                sed -i "s|#transformer_path = '/models/|#transformer_path = '$NETWORK_VOLUME/models/|g" "$toml_file"
+
+                echo "Updated paths in: $(basename "$toml_file")"
+            fi
+        done
+    fi
+
     # Move training scripts and utilities
     if [ -d "$NETWORK_VOLUME/runpod-diffusion_pipe/start_training_scripts" ]; then
         mv "$NETWORK_VOLUME/runpod-diffusion_pipe/start_training_scripts" "$NETWORK_VOLUME/"
@@ -76,72 +101,6 @@ mkdir -p "$NETWORK_VOLUME/video_dataset_here"
 if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/dataset.toml" ]; then
     sed -i "s|path = '/home/anon/data/images/grayscale'|path = '$NETWORK_VOLUME/image_dataset_here'|" "$NETWORK_VOLUME/diffusion_pipe/examples/dataset.toml"
 fi
-
-# Create models directory in the working directory
-mkdir -p "$NETWORK_VOLUME/models"
-
-# Download Wan 1.3B model if requested
-if [ "$download_wan13" == "true" ]; then
-    if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml" ]; then
-        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
-    fi
-    echo "Downloading Wan 1.3B model..."
-    mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B"
-    huggingface-cli download Wan-AI/Wan2.1-T2V-1.3B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" 2>&1 | tee "$NETWORK_VOLUME/download_log.txt"
-    echo "Finished downloading Wan 1.3B model"
-fi
-
-# Download Wan 14B T2V model if requested
-if [ "$download_wan14B_t2v" == "true" ]; then
-    if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml" ]; then
-        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
-    fi
-    echo "Downloading Wan 14B T2V model..."
-    mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B"
-    huggingface-cli download Wan-AI/Wan2.1-T2V-14B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" 2>&1 | tee "$NETWORK_VOLUME/download_log.txt"
-    echo "Finished downloading Wan 14B T2V model"
-fi
-
-# Download Wan 14B I2V model if requested
-if [ "$download_wan14B_i2v_480p" == "true" ]; then
-    if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml" ]; then
-        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
-    fi
-    echo "Downloading Wan 14B I2V model..."
-    mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P"
-    huggingface-cli download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" 2>&1 | tee "$NETWORK_VOLUME/download_log.txt"
-    echo "Finished downloading Wan 14B I2V model"
-fi
-
-# Download base SDXL if requested
-if [ "$download_base_sdxl" == "true" ]; then
-    if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml" ]; then
-        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
-    fi
-    echo "Downloading Base SDXL..."
-    huggingface-cli download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" 2>&1 | tee "$NETWORK_VOLUME/download_log.txt"
-    echo "Finished downloading base SDXL"
-fi
-
-# Download Flux if requested
-if [ "$download_flux" == "true" ]; then
-    if [ -z "$HUGGING_FACE_TOKEN" ] || [ "$HUGGING_FACE_TOKEN" == "token_here" ]; then
-        echo "Error: HUGGING_FACE_TOKEN is set to the default value 'token_here' or doesn't exist. Please update it in RunPod's environment variables."
-        exit 1
-    fi
-
-    echo "HUGGING_FACE_TOKEN is set."
-    if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml" ]; then
-        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
-    fi
-    echo "Downloading Flux..."
-    mkdir -p "$NETWORK_VOLUME/models/flux"
-    huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir "$NETWORK_VOLUME/models/flux" --repo-type model --token "$HUGGING_FACE_TOKEN" 2>&1 | tee "$NETWORK_VOLUME/download_log.txt"
-    echo "Finished downloading Flux"
-fi
-
-# Clean up any redundant toml files in root
-rm -f /*.toml
 
 echo "Setup complete! All files are organized in $NETWORK_VOLUME"
 echo "Jupyter Lab is running and accessible via the web interface"
