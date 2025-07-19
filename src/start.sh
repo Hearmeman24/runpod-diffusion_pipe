@@ -15,6 +15,8 @@ else
     NETWORK_VOLUME="/workspace/diffusion_pipe_working_folder"
 fi
 
+echo "cd $NETWORK_VOLUME" >> /root/.bashrc
+
 pip install torchvision
 
 export NETWORK_VOLUME
