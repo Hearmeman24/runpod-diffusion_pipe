@@ -15,6 +15,8 @@ else
     NETWORK_VOLUME="/workspace/diffusion_pipe_working_folder"
 fi
 
+pip install torchvision
+
 export NETWORK_VOLUME
 
 # Start Jupyter Lab with the working folder as the root directory
