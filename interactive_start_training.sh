@@ -284,9 +284,100 @@ echo ""
 print_info "Configuration completed! Starting model download and setup..."
 echo ""
 
+# Start model download in background immediately after configuration
+print_info "Configuration completed! Starting model download and setup..."
+echo ""
+
+# Model download logic - start in background
+print_header "Starting Model Download"
+echo ""
+
+mkdir -p "$NETWORK_VOLUME/models"
+
+case $MODEL_TYPE in
+    "flux")
+        if [ -z "$HUGGING_FACE_TOKEN" ] || [ "$HUGGING_FACE_TOKEN" == "token_here" ]; then
+            print_error "HUGGING_FACE_TOKEN is not set properly."
+            exit 1
+        fi
+
+        print_info "HUGGING_FACE_TOKEN is set."
+        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml" ]; then
+            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+            print_success "Moved flux.toml to examples directory"
+        fi
+        print_info "Starting Flux model download in background..."
+        mkdir -p "$NETWORK_VOLUME/models/flux"
+        huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir "$NETWORK_VOLUME/models/flux" --repo-type model --token "$HUGGING_FACE_TOKEN" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        MODEL_DOWNLOAD_PID=$!
+        ;;
+
+    "sdxl")
+        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml" ]; then
+            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+            print_success "Moved sdxl.toml to examples directory"
+        fi
+        print_info "Starting Base SDXL model download in background..."
+        huggingface-cli download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        MODEL_DOWNLOAD_PID=$!
+        ;;
+
+    "wan13")
+        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml" ]; then
+            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+            print_success "Moved wan13_video.toml to examples directory"
+        fi
+        print_info "Starting Wan 1.3B model download in background..."
+        mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B"
+        huggingface-cli download Wan-AI/Wan2.1-T2V-1.3B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        MODEL_DOWNLOAD_PID=$!
+        ;;
+
+    "wan14b_t2v")
+        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml" ]; then
+            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+            print_success "Moved wan14b_t2v.toml to examples directory"
+        fi
+        print_info "Starting Wan 14B T2V model download in background..."
+        mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B"
+        huggingface-cli download Wan-AI/Wan2.1-T2V-14B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        MODEL_DOWNLOAD_PID=$!
+        ;;
+
+    "wan14b_i2v")
+        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml" ]; then
+            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+            print_success "Moved wan14b_i2v.toml to examples directory"
+        fi
+        print_info "Starting Wan 14B I2V model download in background..."
+        mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P"
+        huggingface-cli download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        MODEL_DOWNLOAD_PID=$!
+        ;;
+esac
+
+echo ""
+
 # Start captioning processes if needed
 if [ "$CAPTION_MODE" != "skip" ]; then
     print_header "Starting Captioning Process"
+    echo ""
+
+    # Clear any existing subfolders in dataset directories before captioning
+    if [ "$CAPTION_MODE" = "images" ] || [ "$CAPTION_MODE" = "both" ]; then
+        print_info "Cleaning up image dataset directory..."
+        # Remove any subdirectories but keep files
+        find "$NETWORK_VOLUME/image_dataset_here" -mindepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
+        print_success "Image dataset directory cleaned"
+    fi
+
+    if [ "$CAPTION_MODE" = "videos" ] || [ "$CAPTION_MODE" = "both" ]; then
+        print_info "Cleaning up video dataset directory..."
+        # Remove any subdirectories but keep files
+        find "$NETWORK_VOLUME/video_dataset_here" -mindepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
+        print_success "Video dataset directory cleaned"
+    fi
+
     echo ""
 
     # Start image captioning in background if needed
@@ -356,122 +447,20 @@ if [ "$CAPTION_MODE" != "skip" ]; then
     echo ""
 fi
 
-# Model download logic
-print_header "Downloading Required Models"
-echo ""
-
-mkdir -p "$NETWORK_VOLUME/models"
-
-case $MODEL_TYPE in
-    "flux")
-        if [ -z "$HUGGING_FACE_TOKEN" ] || [ "$HUGGING_FACE_TOKEN" == "token_here" ]; then
-            print_error "HUGGING_FACE_TOKEN is not set properly."
-            exit 1
-        fi
-
-        print_info "HUGGING_FACE_TOKEN is set."
-        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml" ]; then
-            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
-            print_success "Moved flux.toml to examples directory"
-        fi
-        print_info "Downloading Flux model..."
-        mkdir -p "$NETWORK_VOLUME/models/flux"
-        huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir "$NETWORK_VOLUME/models/flux" --repo-type model --token "$HUGGING_FACE_TOKEN" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
-        MODEL_DOWNLOAD_PID=$!
-
-        # Wait for download with progress indicator
-        while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
-            echo -n "."
-            sleep 3
-        done
-        echo ""
-        wait "$MODEL_DOWNLOAD_PID"
-        print_success "Finished downloading Flux model"
-        ;;
-
-    "sdxl")
-        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml" ]; then
-            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
-            print_success "Moved sdxl.toml to examples directory"
-        fi
-        print_info "Downloading Base SDXL model..."
-        huggingface-cli download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
-        MODEL_DOWNLOAD_PID=$!
-
-        # Wait for download with progress indicator
-        while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
-            echo -n "."
-            sleep 3
-        done
-        echo ""
-        wait "$MODEL_DOWNLOAD_PID"
-        print_success "Finished downloading base SDXL model"
-        ;;
-
-    "wan13")
-        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml" ]; then
-            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
-            print_success "Moved wan13_video.toml to examples directory"
-        fi
-        print_info "Downloading Wan 1.3B model..."
-        mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B"
-        huggingface-cli download Wan-AI/Wan2.1-T2V-1.3B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
-        MODEL_DOWNLOAD_PID=$!
-
-        # Wait for download with progress indicator
-        while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
-            echo -n "."
-            sleep 3
-        done
-        echo ""
-        wait "$MODEL_DOWNLOAD_PID"
-        print_success "Finished downloading Wan 1.3B model"
-        ;;
-
-    "wan14b_t2v")
-        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml" ]; then
-            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
-            print_success "Moved wan14b_t2v.toml to examples directory"
-        fi
-        print_info "Downloading Wan 14B T2V model..."
-        mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B"
-        huggingface-cli download Wan-AI/Wan2.1-T2V-14B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
-        MODEL_DOWNLOAD_PID=$!
-
-        # Wait for download with progress indicator
-        while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
-            echo -n "."
-            sleep 3
-        done
-        echo ""
-        wait "$MODEL_DOWNLOAD_PID"
-        print_success "Finished downloading Wan 14B T2V model"
-        ;;
-
-    "wan14b_i2v")
-        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml" ]; then
-            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
-            print_success "Moved wan14b_i2v.toml to examples directory"
-        fi
-        print_info "Downloading Wan 14B I2V model..."
-        mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P"
-        huggingface-cli download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
-        MODEL_DOWNLOAD_PID=$!
-
-        # Wait for download with progress indicator
-        while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
-            echo -n "."
-            sleep 3
-        done
-        echo ""
-        wait "$MODEL_DOWNLOAD_PID"
-        print_success "Finished downloading Wan 14B I2V model"
-        ;;
-esac
-
-echo ""
-print_success "Model download completed!"
-echo ""
+# Wait for model download to complete
+if [ -n "$MODEL_DOWNLOAD_PID" ]; then
+    print_header "Finalizing Model Download"
+    echo ""
+    print_info "Waiting for model download to complete..."
+    while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
+        echo -n "."
+        sleep 3
+    done
+    echo ""
+    wait "$MODEL_DOWNLOAD_PID"
+    print_success "Model download completed!"
+    echo ""
+fi
 
 # Update dataset.toml file with actual paths and video config
 print_header "Configuring Dataset"
