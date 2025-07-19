@@ -11,7 +11,7 @@ dataset = 'examples/dataset.toml'
 # training settings
 
 # I usually set this to a really high value because I don't know how long I want to train.
-epochs = 1000
+epochs = 200
 # Batch size of a single forward/backward pass for one GPU.
 micro_batch_size_per_gpu = 1
 # Pipeline parallelism degree. A single instance of the model is divided across this many GPUs.
@@ -37,7 +37,7 @@ eval_gradient_accumulation_steps = 1
 # misc settings
 
 # Probably want to set this a bit higher if you have a smaller dataset so you don't end up with a million saved models.
-save_every_n_epochs = 2
+save_every_n_epochs = 10
 # Can checkpoint the training state every n number of epochs or minutes. Set only one of these. You can resume from checkpoints using the --resume_from_checkpoint flag.
 #checkpoint_every_n_epochs = 1
 checkpoint_every_n_minutes = 120
