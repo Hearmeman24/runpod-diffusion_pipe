@@ -302,6 +302,18 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             fi
             IMAGE_CAPTION_PID=$!
             print_success "Image captioning started in background (PID: $IMAGE_CAPTION_PID)"
+
+            # Wait for image captioning with progress indicator
+            print_info "Waiting for image captioning to complete..."
+            while kill -0 "$IMAGE_CAPTION_PID" 2>/dev/null; do
+                if tail -n 1 "$NETWORK_VOLUME/image_captioning.log" 2>/dev/null | grep -q "All done!"; then
+                    break
+                fi
+                echo -n "."
+                sleep 2
+            done
+            echo ""
+            print_success "Image captioning completed!"
         else
             print_error "JoyCaption script not found at: $JOY_CAPTION_SCRIPT"
             exit 1
@@ -314,7 +326,21 @@ if [ "$CAPTION_MODE" != "skip" ]; then
         VIDEO_CAPTION_SCRIPT="$NETWORK_VOLUME/Captioning/video_captioner.sh"
 
         if [ -f "$VIDEO_CAPTION_SCRIPT" ]; then
-            bash "$VIDEO_CAPTION_SCRIPT" > /dev/null 2>&1
+            bash "$VIDEO_CAPTION_SCRIPT" > "$NETWORK_VOLUME/video_captioning.log" 2>&1 &
+            VIDEO_CAPTION_PID=$!
+
+            # Wait for video captioning with progress indicator
+            print_info "Waiting for video captioning to complete..."
+            while kill -0 "$VIDEO_CAPTION_PID" 2>/dev/null; do
+                if tail -n 1 "$NETWORK_VOLUME/video_captioning.log" 2>/dev/null | grep -q "video captioning complete"; then
+                    break
+                fi
+                echo -n "."
+                sleep 2
+            done
+            echo ""
+
+            wait "$VIDEO_CAPTION_PID"
             if [ $? -eq 0 ]; then
                 print_success "Video captioning completed successfully"
             else
@@ -350,7 +376,16 @@ case $MODEL_TYPE in
         fi
         print_info "Downloading Flux model..."
         mkdir -p "$NETWORK_VOLUME/models/flux"
-        huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir "$NETWORK_VOLUME/models/flux" --repo-type model --token "$HUGGING_FACE_TOKEN" 2>&1 | tee "$NETWORK_VOLUME/download_log.txt"
+        huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir "$NETWORK_VOLUME/models/flux" --repo-type model --token "$HUGGING_FACE_TOKEN" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        MODEL_DOWNLOAD_PID=$!
+
+        # Wait for download with progress indicator
+        while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
+            echo -n "."
+            sleep 3
+        done
+        echo ""
+        wait "$MODEL_DOWNLOAD_PID"
         print_success "Finished downloading Flux model"
         ;;
 
@@ -360,7 +395,16 @@ case $MODEL_TYPE in
             print_success "Moved sdxl.toml to examples directory"
         fi
         print_info "Downloading Base SDXL model..."
-        huggingface-cli download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" 2>&1 | tee "$NETWORK_VOLUME/download_log.txt"
+        huggingface-cli download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        MODEL_DOWNLOAD_PID=$!
+
+        # Wait for download with progress indicator
+        while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
+            echo -n "."
+            sleep 3
+        done
+        echo ""
+        wait "$MODEL_DOWNLOAD_PID"
         print_success "Finished downloading base SDXL model"
         ;;
 
@@ -371,7 +415,16 @@ case $MODEL_TYPE in
         fi
         print_info "Downloading Wan 1.3B model..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B"
-        huggingface-cli download Wan-AI/Wan2.1-T2V-1.3B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" 2>&1 | tee "$NETWORK_VOLUME/download_log.txt"
+        huggingface-cli download Wan-AI/Wan2.1-T2V-1.3B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        MODEL_DOWNLOAD_PID=$!
+
+        # Wait for download with progress indicator
+        while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
+            echo -n "."
+            sleep 3
+        done
+        echo ""
+        wait "$MODEL_DOWNLOAD_PID"
         print_success "Finished downloading Wan 1.3B model"
         ;;
 
@@ -382,7 +435,16 @@ case $MODEL_TYPE in
         fi
         print_info "Downloading Wan 14B T2V model..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B"
-        huggingface-cli download Wan-AI/Wan2.1-T2V-14B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" 2>&1 | tee "$NETWORK_VOLUME/download_log.txt"
+        huggingface-cli download Wan-AI/Wan2.1-T2V-14B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        MODEL_DOWNLOAD_PID=$!
+
+        # Wait for download with progress indicator
+        while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
+            echo -n "."
+            sleep 3
+        done
+        echo ""
+        wait "$MODEL_DOWNLOAD_PID"
         print_success "Finished downloading Wan 14B T2V model"
         ;;
 
@@ -393,7 +455,16 @@ case $MODEL_TYPE in
         fi
         print_info "Downloading Wan 14B I2V model..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P"
-        huggingface-cli download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" 2>&1 | tee "$NETWORK_VOLUME/download_log.txt"
+        huggingface-cli download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        MODEL_DOWNLOAD_PID=$!
+
+        # Wait for download with progress indicator
+        while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
+            echo -n "."
+            sleep 3
+        done
+        echo ""
+        wait "$MODEL_DOWNLOAD_PID"
         print_success "Finished downloading Wan 14B I2V model"
         ;;
 esac
@@ -565,24 +636,8 @@ echo ""
 
 # Check if image captioning is still running
 if [ "$CAPTION_MODE" = "images" ] || [ "$CAPTION_MODE" = "both" ]; then
-    if [ -n "$IMAGE_CAPTION_PID" ] && kill -0 "$IMAGE_CAPTION_PID" 2>/dev/null; then
-        print_warning "Image captioning is still running..."
-        echo ""
-        print_info "Waiting for image captioning to complete..."
-
-        # Wait for the process and monitor for completion
-        while kill -0 "$IMAGE_CAPTION_PID" 2>/dev/null; do
-            if tail -n 1 "$NETWORK_VOLUME/image_captioning.log" 2>/dev/null | grep -q "All done!"; then
-                print_success "Image captioning completed!"
-                break
-            fi
-            sleep 5
-        done
-
-        # Wait for process to fully complete
-        wait "$IMAGE_CAPTION_PID"
-        echo ""
-    fi
+    # Image captioning was already handled in the captioning section above
+    # No need to check again here
 
     # Prompt user to inspect image captions
     print_header "Caption Inspection"
@@ -614,6 +669,9 @@ fi
 
 # Check video captions if applicable
 if [ "$CAPTION_MODE" = "videos" ] || [ "$CAPTION_MODE" = "both" ]; then
+    # Video captioning was already handled in the captioning section above
+    # No need to check again here
+
     print_header "Video Caption Inspection"
     echo ""
     print_info "Please manually inspect the generated video captions in:"
