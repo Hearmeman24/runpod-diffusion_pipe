@@ -1,20 +1,20 @@
 #!/bin/bash
 set -e  # Exit immediately if a command exits with a non-zero status
 
-# Colors for better UX
+# Colors for better UX - compatible with both light and dark terminals
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
-WHITE='\033[1;37m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Function to print colored output
 print_header() {
     echo -e "${CYAN}================================================${NC}"
-    echo -e "${WHITE}$1${NC}"
+    echo -e "${BOLD}$1${NC}"
     echo -e "${CYAN}================================================${NC}"
 }
 
@@ -42,7 +42,7 @@ echo -e "${PURPLE}This interactive script will guide you through setting up and 
 echo ""
 
 # Model selection
-echo -e "${WHITE}Please select the model you want to train:${NC}"
+echo -e "${BOLD}Please select the model you want to train:${NC}"
 echo ""
 echo "1) Flux"
 echo "2) SDXL"
@@ -118,7 +118,7 @@ echo ""
 # Dataset selection
 print_header "Dataset Configuration"
 echo ""
-echo -e "${WHITE}Do you want to caption images and/or videos?${NC}"
+echo -e "${BOLD}Do you want to caption images and/or videos?${NC}"
 echo ""
 echo "1) Images only"
 echo "2) Videos only"
@@ -174,6 +174,20 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             print_success "Gemini API key set successfully."
         else
             print_success "Gemini API key already set."
+        fi
+        echo ""
+    fi
+
+    # Ask for trigger word if image captioning is needed
+    TRIGGER_WORD=""
+    if [ "$CAPTION_MODE" = "images" ] || [ "$CAPTION_MODE" = "both" ]; then
+        echo -e "${BOLD}Image Captioning Configuration:${NC}"
+        echo ""
+        read -p "Enter a trigger word for image captions (or press Enter for none): " TRIGGER_WORD
+        if [ -n "$TRIGGER_WORD" ]; then
+            print_success "Trigger word set: '$TRIGGER_WORD'"
+        else
+            print_info "No trigger word set"
         fi
         echo ""
     fi
@@ -269,6 +283,52 @@ fi
 echo ""
 print_info "Configuration completed! Starting model download and setup..."
 echo ""
+
+# Start captioning processes if needed
+if [ "$CAPTION_MODE" != "skip" ]; then
+    print_header "Starting Captioning Process"
+    echo ""
+
+    # Start image captioning in background if needed
+    if [ "$CAPTION_MODE" = "images" ] || [ "$CAPTION_MODE" = "both" ]; then
+        print_info "Starting image captioning process..."
+        JOY_CAPTION_SCRIPT="$NETWORK_VOLUME/Captioning/JoyCaption/JoyCaptionRunner.sh"
+
+        if [ -f "$JOY_CAPTION_SCRIPT" ]; then
+            if [ -n "$TRIGGER_WORD" ]; then
+                bash "$JOY_CAPTION_SCRIPT" --trigger-word "$TRIGGER_WORD" > "$NETWORK_VOLUME/image_captioning.log" 2>&1 &
+            else
+                bash "$JOY_CAPTION_SCRIPT" > "$NETWORK_VOLUME/image_captioning.log" 2>&1 &
+            fi
+            IMAGE_CAPTION_PID=$!
+            print_success "Image captioning started in background (PID: $IMAGE_CAPTION_PID)"
+        else
+            print_error "JoyCaption script not found at: $JOY_CAPTION_SCRIPT"
+            exit 1
+        fi
+    fi
+
+    # Start video captioning if needed
+    if [ "$CAPTION_MODE" = "videos" ] || [ "$CAPTION_MODE" = "both" ]; then
+        print_info "Starting video captioning process..."
+        VIDEO_CAPTION_SCRIPT="$NETWORK_VOLUME/Captioning/video_captioner.sh"
+
+        if [ -f "$VIDEO_CAPTION_SCRIPT" ]; then
+            bash "$VIDEO_CAPTION_SCRIPT" > /dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                print_success "Video captioning completed successfully"
+            else
+                print_error "Video captioning failed"
+                exit 1
+            fi
+        else
+            print_error "Video captioning script not found at: $VIDEO_CAPTION_SCRIPT"
+            exit 1
+        fi
+    fi
+
+    echo ""
+fi
 
 # Model download logic
 print_header "Downloading Required Models"
@@ -410,12 +470,12 @@ else
     OPTIMIZER_TYPE="adamw_optimi (default)"
 fi
 
-echo -e "${WHITE}Model:${NC} $MODEL_NAME"
-echo -e "${WHITE}TOML Config:${NC} examples/$TOML_FILE"
-echo -e "${WHITE}Resolution:${NC} ${RESOLUTION}x${RESOLUTION}"
+echo -e "${BOLD}Model:${NC} $MODEL_NAME"
+echo -e "${BOLD}TOML Config:${NC} examples/$TOML_FILE"
+echo -e "${BOLD}Resolution:${NC} ${RESOLUTION}x${RESOLUTION}"
 echo ""
 
-echo -e "${WHITE}Training Parameters:${NC}"
+echo -e "${BOLD}Training Parameters:${NC}"
 echo "  📊 Epochs: $EPOCHS"
 echo "  💾 Save Every: $SAVE_EVERY epochs"
 echo "  🎛️  LoRA Rank: $RANK"
@@ -425,7 +485,7 @@ echo ""
 
 # Show dataset paths and repeats
 if [ "$CAPTION_MODE" != "skip" ]; then
-    echo -e "${WHITE}Dataset Configuration:${NC}"
+    echo -e "${BOLD}Dataset Configuration:${NC}"
 
     # Always show image dataset info
     if [ "$CAPTION_MODE" = "images" ] || [ "$CAPTION_MODE" = "both" ]; then
@@ -441,15 +501,15 @@ if [ "$CAPTION_MODE" != "skip" ]; then
         echo "     Repeats: 5 per epoch"
     fi
 else
-    echo -e "${WHITE}Dataset:${NC} Using existing captions"
+    echo -e "${BOLD}Dataset:${NC} Using existing captions"
 fi
 
 if [ "$MODEL_TYPE" = "flux" ]; then
-    echo -e "${WHITE}Hugging Face Token:${NC} Set ✓"
+    echo -e "${BOLD}Hugging Face Token:${NC} Set ✓"
 fi
 
 if [ "$CAPTION_MODE" = "videos" ] || [ "$CAPTION_MODE" = "both" ]; then
-    echo -e "${WHITE}Gemini API Key:${NC} Set ✓"
+    echo -e "${BOLD}Gemini API Key:${NC} Set ✓"
 fi
 
 echo ""
@@ -460,10 +520,10 @@ echo ""
 
 print_info "Before starting training, you can modify the default training parameters in these files:"
 echo ""
-echo -e "${WHITE}1. Model Configuration:${NC}"
+echo -e "${BOLD}1. Model Configuration:${NC}"
 echo "   $NETWORK_VOLUME/diffusion_pipe/examples/$TOML_FILE"
 echo ""
-echo -e "${WHITE}2. Dataset Configuration:${NC}"
+echo -e "${BOLD}2. Dataset Configuration:${NC}"
 echo "   $NETWORK_VOLUME/diffusion_pipe/examples/dataset.toml"
 echo ""
 
@@ -488,7 +548,7 @@ while true; do
         2)
             print_info "Training paused. Please modify the configuration files as needed."
             echo ""
-            echo -e "${WHITE}When ready to start training, run:${NC}"
+            echo -e "${BOLD}When ready to start training, run:${NC}"
             echo "cd $NETWORK_VOLUME/diffusion_pipe"
             echo "NCCL_P2P_DISABLE=\"1\" NCCL_IB_DISABLE=\"1\" deepspeed --num_gpus=1 train.py --deepspeed --config examples/$TOML_FILE"
             echo ""
@@ -502,6 +562,84 @@ while true; do
 done
 
 echo ""
+
+# Check if image captioning is still running
+if [ "$CAPTION_MODE" = "images" ] || [ "$CAPTION_MODE" = "both" ]; then
+    if [ -n "$IMAGE_CAPTION_PID" ] && kill -0 "$IMAGE_CAPTION_PID" 2>/dev/null; then
+        print_warning "Image captioning is still running..."
+        echo ""
+        print_info "Waiting for image captioning to complete..."
+
+        # Wait for the process and monitor for completion
+        while kill -0 "$IMAGE_CAPTION_PID" 2>/dev/null; do
+            if tail -n 1 "$NETWORK_VOLUME/image_captioning.log" 2>/dev/null | grep -q "All done!"; then
+                print_success "Image captioning completed!"
+                break
+            fi
+            sleep 5
+        done
+
+        # Wait for process to fully complete
+        wait "$IMAGE_CAPTION_PID"
+        echo ""
+    fi
+
+    # Prompt user to inspect image captions
+    print_header "Caption Inspection"
+    echo ""
+    print_info "Please manually inspect the generated captions in:"
+    echo "  $NETWORK_VOLUME/image_dataset_here"
+    echo ""
+    print_warning "Check that the captions are accurate and appropriate for your training data."
+    echo ""
+
+    while true; do
+        read -p "Have you reviewed the image captions and are ready to proceed? (yes/no): " inspect_choice
+        case $inspect_choice in
+            yes|YES|y|Y)
+                print_success "Image captions approved. Proceeding to training..."
+                break
+                ;;
+            no|NO|n|N)
+                print_info "Please review the captions and run this script again when ready."
+                exit 0
+                ;;
+            *)
+                print_error "Please enter 'yes' or 'no'."
+                ;;
+        esac
+    done
+    echo ""
+fi
+
+# Check video captions if applicable
+if [ "$CAPTION_MODE" = "videos" ] || [ "$CAPTION_MODE" = "both" ]; then
+    print_header "Video Caption Inspection"
+    echo ""
+    print_info "Please manually inspect the generated video captions in:"
+    echo "  $NETWORK_VOLUME/video_dataset_here"
+    echo ""
+    print_warning "Check that the video captions are accurate and appropriate for your training data."
+    echo ""
+
+    while true; do
+        read -p "Have you reviewed the video captions and are ready to proceed? (yes/no): " video_inspect_choice
+        case $video_inspect_choice in
+            yes|YES|y|Y)
+                print_success "Video captions approved. Proceeding to training..."
+                break
+                ;;
+            no|NO|n|N)
+                print_info "Please review the captions and run this script again when ready."
+                exit 0
+                ;;
+            *)
+                print_error "Please enter 'yes' or 'no'."
+                ;;
+        esac
+    done
+    echo ""
+fi
 
 # Start training
 print_header "Starting Training"
