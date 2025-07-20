@@ -14,12 +14,13 @@ else
     mkdir -p "/workspace/diffusion_pipe_working_folder"
     NETWORK_VOLUME="/workspace/diffusion_pipe_working_folder"
 fi
+export NETWORK_VOLUME
 
 echo "cd $NETWORK_VOLUME" >> /root/.bashrc
 
 pip install torchvision
 
-export NETWORK_VOLUME
+
 
 # Start Jupyter Lab with the working folder as the root directory
 # This puts users directly in their working environment and hides system files
