@@ -532,7 +532,7 @@ fi
 
 echo -e "${BOLD}Model:${NC} $MODEL_NAME"
 echo -e "${BOLD}TOML Config:${NC} examples/$TOML_FILE"
-echo -e "${BOLD}Resolution:${NC} ${RESOLUTION}x${RESOLUTION}"
+echo -e "${BOLD}Resolution:${NC} ${RESOLUTION}"
 echo ""
 
 echo -e "${BOLD}Training Parameters:${NC}"
