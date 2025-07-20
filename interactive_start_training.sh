@@ -39,7 +39,6 @@ clear
 print_header "Welcome to HearmemanAI LoRA Trainer using Diffusion Pipe"
 echo ""
 echo -e "${PURPLE}This interactive script will guide you through setting up and starting a LoRA training session.${NC}"
-echo -e "${RED}Before you start, make sure to add your datasets into their respective folders${NC}"
 echo ""
 
 # Model selection
@@ -309,7 +308,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Flux model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/flux"
-        huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir "$NETWORK_VOLUME/models/flux" --repo-type model --token "$HUGGING_FACE_TOKEN" > "$NETWORK_VOLUME/logs/download_log.txt" 2>&1 &
+        huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir "$NETWORK_VOLUME/models/flux" --repo-type model --token "$HUGGING_FACE_TOKEN" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -319,7 +318,7 @@ case $MODEL_TYPE in
             print_success "Moved sdxl.toml to examples directory"
         fi
         print_info "Starting Base SDXL model download in background..."
-        huggingface-cli download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" > "$NETWORK_VOLUME/logs/download_log.txt" 2>&1 &
+        huggingface-cli download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -330,7 +329,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Wan 1.3B model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B"
-        huggingface-cli download Wan-AI/Wan2.1-T2V-1.3B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" > "$NETWORK_VOLUME/logs/download_log.txt" 2>&1 &
+        huggingface-cli download Wan-AI/Wan2.1-T2V-1.3B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -341,7 +340,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Wan 14B T2V model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B"
-        huggingface-cli download Wan-AI/Wan2.1-T2V-14B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" > "$NETWORK_VOLUME/logs/download_log.txt" 2>&1 &
+        huggingface-cli download Wan-AI/Wan2.1-T2V-14B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -352,7 +351,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Wan 14B I2V model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P"
-        huggingface-cli download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" > "$NETWORK_VOLUME/logs/download_log.txt" 2>&1 &
+        huggingface-cli download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 esac
@@ -388,17 +387,17 @@ if [ "$CAPTION_MODE" != "skip" ]; then
 
         if [ -f "$JOY_CAPTION_SCRIPT" ]; then
             if [ -n "$TRIGGER_WORD" ]; then
-                bash "$JOY_CAPTION_SCRIPT" --trigger-word "$TRIGGER_WORD" > "$NETWORK_VOLUME/logs/image_captioning.log" 2>&1 &
+                bash "$JOY_CAPTION_SCRIPT" --trigger-word "$TRIGGER_WORD" > "$NETWORK_VOLUME/image_captioning.log" 2>&1 &
             else
-                bash "$JOY_CAPTION_SCRIPT" > "$NETWORK_VOLUME/logs/image_captioning.log" 2>&1 &
+                bash "$JOY_CAPTION_SCRIPT" > "$NETWORK_VOLUME/image_captioning.log" 2>&1 &
             fi
             IMAGE_CAPTION_PID=$!
             print_success "Image captioning started in background (PID: $IMAGE_CAPTION_PID)"
 
             # Wait for image captioning with progress indicator
-            print_info "Waiting for image captioning to complete... (First run takes 5-10 minutes)"
+            print_info "Waiting for image captioning to complete..."
             while kill -0 "$IMAGE_CAPTION_PID" 2>/dev/null; do
-                if tail -n 1 "$NETWORK_VOLUME/logs/image_captioning.log" 2>/dev/null | grep -q "All done!"; then
+                if tail -n 1 "$NETWORK_VOLUME/image_captioning.log" 2>/dev/null | grep -q "All done!"; then
                     break
                 fi
                 echo -n "."
@@ -418,13 +417,13 @@ if [ "$CAPTION_MODE" != "skip" ]; then
         VIDEO_CAPTION_SCRIPT="$NETWORK_VOLUME/Captioning/video_captioner.sh"
 
         if [ -f "$VIDEO_CAPTION_SCRIPT" ]; then
-            bash "$VIDEO_CAPTION_SCRIPT" > "$NETWORK_VOLUME/logs/video_captioning.log" 2>&1 &
+            bash "$VIDEO_CAPTION_SCRIPT" > "$NETWORK_VOLUME/video_captioning.log" 2>&1 &
             VIDEO_CAPTION_PID=$!
 
             # Wait for video captioning with progress indicator
-            print_info "Waiting for video captioning to complete... (First run takes 5-10 minutes)"
+            print_info "Waiting for video captioning to complete..."
             while kill -0 "$VIDEO_CAPTION_PID" 2>/dev/null; do
-                if tail -n 1 "$NETWORK_VOLUME/logs/video_captioning.log" 2>/dev/null | grep -q "video captioning complete"; then
+                if tail -n 1 "$NETWORK_VOLUME/video_captioning.log" 2>/dev/null | grep -q "video captioning complete"; then
                     break
                 fi
                 echo -n "."
@@ -533,7 +532,7 @@ fi
 
 echo -e "${BOLD}Model:${NC} $MODEL_NAME"
 echo -e "${BOLD}TOML Config:${NC} examples/$TOML_FILE"
-echo -e "${BOLD}Resolution:${NC} ${RESOLUTION}"
+echo -e "${BOLD}Resolution:${NC} ${RESOLUTION}x${RESOLUTION}"
 echo ""
 
 echo -e "${BOLD}Training Parameters:${NC}"
@@ -607,14 +606,100 @@ while true; do
             break
             ;;
         2)
-            print_info "Training paused. Please modify the configuration files as needed."
+            print_info "Training paused for manual configuration."
             echo ""
-            echo -e "${BOLD}When ready to start training, run:${NC}"
-            echo "cd $NETWORK_VOLUME/diffusion_pipe"
-            echo "NCCL_P2P_DISABLE=\"1\" NCCL_IB_DISABLE=\"1\" deepspeed --num_gpus=1 train.py --deepspeed --config examples/$TOML_FILE"
+            echo -e "${BOLD}Configuration Files:${NC}"
+            echo "1. Model settings: $NETWORK_VOLUME/diffusion_pipe/examples/$TOML_FILE"
+            echo "2. Dataset settings: $NETWORK_VOLUME/diffusion_pipe/examples/dataset.toml"
             echo ""
-            print_success "Script completed. Modify your files and run the command above when ready."
-            exit 0
+            print_warning "Please modify these files as needed, then return here to continue."
+            echo ""
+
+            while true; do
+                read -p "Have you finished configuring the settings? (yes/no): " config_done
+                case $config_done in
+                    yes|YES|y|Y)
+                        print_success "Configuration completed. Reading updated settings..."
+                        echo ""
+
+                        # Re-read training parameters from updated TOML files
+                        MODEL_TOML="$NETWORK_VOLUME/diffusion_pipe/examples/$TOML_FILE"
+                        DATASET_TOML="$NETWORK_VOLUME/diffusion_pipe/examples/dataset.toml"
+
+                        # Read resolution from dataset.toml
+                        if [ -f "$DATASET_TOML" ]; then
+                            RESOLUTION=$(grep "^resolutions = " "$DATASET_TOML" | sed 's/resolutions = \[\([0-9]*\)\]/\1/')
+                            if [ -z "$RESOLUTION" ]; then
+                                RESOLUTION="1024 (default)"
+                            fi
+                        else
+                            RESOLUTION="1024 (default)"
+                        fi
+
+                        # Read training parameters from model TOML file
+                        if [ -f "$MODEL_TOML" ]; then
+                            EPOCHS=$(grep "^epochs = " "$MODEL_TOML" | sed 's/epochs = //')
+                            SAVE_EVERY=$(grep "^save_every_n_epochs = " "$MODEL_TOML" | sed 's/save_every_n_epochs = //')
+                            RANK=$(grep "^rank = " "$MODEL_TOML" | sed 's/rank = //')
+                            LR=$(grep "^lr = " "$MODEL_TOML" | sed 's/lr = //')
+                            OPTIMIZER_TYPE=$(grep "^type = " "$MODEL_TOML" | grep -A5 "\[optimizer\]" | grep "^type = " | sed "s/type = '//;s/'//")
+
+                            # Set defaults if not found
+                            [ -z "$EPOCHS" ] && EPOCHS="1000 (default)"
+                            [ -z "$SAVE_EVERY" ] && SAVE_EVERY="2 (default)"
+                            [ -z "$RANK" ] && RANK="32 (default)"
+                            [ -z "$LR" ] && LR="2e-5 (default)"
+                            [ -z "$OPTIMIZER_TYPE" ] && OPTIMIZER_TYPE="adamw_optimi (default)"
+                        else
+                            # Fallback defaults if TOML file not found
+                            EPOCHS="1000 (default)"
+                            SAVE_EVERY="2 (default)"
+                            RANK="32 (default)"
+                            LR="2e-5 (default)"
+                            OPTIMIZER_TYPE="adamw_optimi (default)"
+                        fi
+
+                        # Display updated configuration for confirmation
+                        print_header "Updated Training Configuration"
+                        echo ""
+                        echo -e "${BOLD}Model:${NC} $MODEL_NAME"
+                        echo -e "${BOLD}Resolution:${NC} ${RESOLUTION}x${RESOLUTION}"
+                        echo ""
+                        echo -e "${BOLD}Updated Training Parameters:${NC}"
+                        echo "  📊 Epochs: $EPOCHS"
+                        echo "  💾 Save Every: $SAVE_EVERY epochs"
+                        echo "  🎛️  LoRA Rank: $RANK"
+                        echo "  📈 Learning Rate: $LR"
+                        echo "  ⚙️  Optimizer: $OPTIMIZER_TYPE"
+                        echo ""
+
+                        while true; do
+                            read -p "Do these updated settings look correct? (yes/no): " settings_confirm
+                            case $settings_confirm in
+                                yes|YES|y|Y)
+                                    print_success "Settings confirmed. Proceeding with training..."
+                                    break 2  # Break out of both loops
+                                    ;;
+                                no|NO|n|N)
+                                    print_info "Please modify the configuration files again."
+                                    echo ""
+                                    break  # Go back to configuration loop
+                                    ;;
+                                *)
+                                    print_error "Please enter 'yes' or 'no'."
+                                    ;;
+                            esac
+                        done
+                        ;;
+                    no|NO|n|N)
+                        print_info "Take your time configuring the settings."
+                        ;;
+                    *)
+                        print_error "Please enter 'yes' or 'no'."
+                        ;;
+                esac
+            done
+            break
             ;;
         *)
             print_error "Invalid choice. Please enter 1 or 2."
