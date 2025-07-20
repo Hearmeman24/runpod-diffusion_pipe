@@ -39,7 +39,7 @@ clear
 print_header "Welcome to HearmemanAI LoRA Trainer using Diffusion Pipe"
 echo ""
 echo -e "${PURPLE}This interactive script will guide you through setting up and starting a LoRA training session.${NC}"
-echo -e "${RED}This interactive script will guide you through setting up and starting a LoRA training session.${NC}"
+echo -e "${RED}Before you start, make sure to add your datasets to their respective folders.${NC}"
 echo ""
 
 # Create logs directory
