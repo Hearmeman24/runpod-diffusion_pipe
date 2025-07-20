@@ -395,7 +395,7 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             print_success "Image captioning started in background (PID: $IMAGE_CAPTION_PID)"
 
             # Wait for image captioning with progress indicator
-            print_info "Waiting for image captioning to complete..."
+            print_info "Waiting for image captioning to complete... (First run takes 5-10 minutes)"
             while kill -0 "$IMAGE_CAPTION_PID" 2>/dev/null; do
                 if tail -n 1 "$NETWORK_VOLUME/image_captioning.log" 2>/dev/null | grep -q "All done!"; then
                     break
