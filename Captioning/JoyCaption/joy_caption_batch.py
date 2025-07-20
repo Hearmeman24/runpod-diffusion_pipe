@@ -18,13 +18,13 @@ import sys
 
 system_prompt = "Write a detailed description for this image in 50 words or less. Do NOT mention any text that is in the image."
 
-
+NETWORK_VOLUME = os.getenv("NETWORK_VOLUME")
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('joy_caption_batch.log'),
+        logging.FileHandler(f'{NETWORK_VOLUME}/logs/joy_caption_batch.log'),
         logging.StreamHandler(sys.stdout)
     ]
 )
