@@ -421,7 +421,7 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             VIDEO_CAPTION_PID=$!
 
             # Wait for video captioning with progress indicator
-            print_info "Waiting for video captioning to complete..."
+            print_info "Waiting for video captioning to complete... (First run takes 5-10 minutes)"
             while kill -0 "$VIDEO_CAPTION_PID" 2>/dev/null; do
                 if tail -n 1 "$NETWORK_VOLUME/video_captioning.log" 2>/dev/null | grep -q "video captioning complete"; then
                     break
