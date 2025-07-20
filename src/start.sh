@@ -107,7 +107,8 @@ if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/dataset.toml" ]; then
     sed -i "s|path = '/home/anon/data/images/grayscale'|path = '$NETWORK_VOLUME/image_dataset_here'|" "$NETWORK_VOLUME/diffusion_pipe/examples/dataset.toml"
 fi
 
-echo "Setup complete! All files are organized in $NETWORK_VOLUME"
-echo "Jupyter Lab is running and accessible via the web interface"
+echo "================================================"
+echo "✅ Jupyter Lab is running and accessible via the web interface"
+echo "================================================"
 
 sleep infinity
