@@ -101,7 +101,7 @@ fi
 # Create dataset directories in the working directory
 mkdir -p "$NETWORK_VOLUME/image_dataset_here"
 mkdir -p "$NETWORK_VOLUME/video_dataset_here"
-
+mkdir -p "$NETWORK_VOLUME/logs"
 # Update dataset.toml path to use the working directory
 if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/dataset.toml" ]; then
     sed -i "s|path = '/home/anon/data/images/grayscale'|path = '$NETWORK_VOLUME/image_dataset_here'|" "$NETWORK_VOLUME/diffusion_pipe/examples/dataset.toml"

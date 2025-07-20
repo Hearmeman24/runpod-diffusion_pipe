@@ -308,7 +308,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Flux model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/flux"
-        huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir "$NETWORK_VOLUME/models/flux" --repo-type model --token "$HUGGING_FACE_TOKEN" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir "$NETWORK_VOLUME/models/flux" --repo-type model --token "$HUGGING_FACE_TOKEN" > "$NETWORK_VOLUME/logs/download_log.txt" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -318,7 +318,7 @@ case $MODEL_TYPE in
             print_success "Moved sdxl.toml to examples directory"
         fi
         print_info "Starting Base SDXL model download in background..."
-        huggingface-cli download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        huggingface-cli download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" > "$NETWORK_VOLUME/logs/download_log.txt" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -329,7 +329,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Wan 1.3B model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B"
-        huggingface-cli download Wan-AI/Wan2.1-T2V-1.3B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        huggingface-cli download Wan-AI/Wan2.1-T2V-1.3B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" > "$NETWORK_VOLUME/logs/download_log.txt" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -340,7 +340,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Wan 14B T2V model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B"
-        huggingface-cli download Wan-AI/Wan2.1-T2V-14B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        huggingface-cli download Wan-AI/Wan2.1-T2V-14B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" > "$NETWORK_VOLUME/logs/download_log.txt" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -351,7 +351,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Wan 14B I2V model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P"
-        huggingface-cli download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" > "$NETWORK_VOLUME/download_log.txt" 2>&1 &
+        huggingface-cli download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" > "$NETWORK_VOLUME/logs/download_log.txt" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 esac
@@ -387,9 +387,9 @@ if [ "$CAPTION_MODE" != "skip" ]; then
 
         if [ -f "$JOY_CAPTION_SCRIPT" ]; then
             if [ -n "$TRIGGER_WORD" ]; then
-                bash "$JOY_CAPTION_SCRIPT" --trigger-word "$TRIGGER_WORD" > "$NETWORK_VOLUME/image_captioning.log" 2>&1 &
+                bash "$JOY_CAPTION_SCRIPT" --trigger-word "$TRIGGER_WORD" > "$NETWORK_VOLUME/logs/image_captioning.log" 2>&1 &
             else
-                bash "$JOY_CAPTION_SCRIPT" > "$NETWORK_VOLUME/image_captioning.log" 2>&1 &
+                bash "$JOY_CAPTION_SCRIPT" > "$NETWORK_VOLUME/logs/image_captioning.log" 2>&1 &
             fi
             IMAGE_CAPTION_PID=$!
             print_success "Image captioning started in background (PID: $IMAGE_CAPTION_PID)"
@@ -397,7 +397,7 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             # Wait for image captioning with progress indicator
             print_info "Waiting for image captioning to complete... (First run takes 5-10 minutes)"
             while kill -0 "$IMAGE_CAPTION_PID" 2>/dev/null; do
-                if tail -n 1 "$NETWORK_VOLUME/image_captioning.log" 2>/dev/null | grep -q "All done!"; then
+                if tail -n 1 "$NETWORK_VOLUME/logs/image_captioning.log" 2>/dev/null | grep -q "All done!"; then
                     break
                 fi
                 echo -n "."
@@ -417,13 +417,13 @@ if [ "$CAPTION_MODE" != "skip" ]; then
         VIDEO_CAPTION_SCRIPT="$NETWORK_VOLUME/Captioning/video_captioner.sh"
 
         if [ -f "$VIDEO_CAPTION_SCRIPT" ]; then
-            bash "$VIDEO_CAPTION_SCRIPT" > "$NETWORK_VOLUME/video_captioning.log" 2>&1 &
+            bash "$VIDEO_CAPTION_SCRIPT" > "$NETWORK_VOLUME/logs/video_captioning.log" 2>&1 &
             VIDEO_CAPTION_PID=$!
 
             # Wait for video captioning with progress indicator
             print_info "Waiting for video captioning to complete... (First run takes 5-10 minutes)"
             while kill -0 "$VIDEO_CAPTION_PID" 2>/dev/null; do
-                if tail -n 1 "$NETWORK_VOLUME/video_captioning.log" 2>/dev/null | grep -q "video captioning complete"; then
+                if tail -n 1 "$NETWORK_VOLUME/logs/video_captioning.log" 2>/dev/null | grep -q "video captioning complete"; then
                     break
                 fi
                 echo -n "."
