@@ -18,10 +18,6 @@ export NETWORK_VOLUME
 
 echo "cd $NETWORK_VOLUME" >> /root/.bashrc
 
-pip install torchvision
-
-
-
 # Start Jupyter Lab with the working folder as the root directory
 # This puts users directly in their working environment and hides system files
 jupyter-lab --ip=0.0.0.0 --allow-root --no-browser \
