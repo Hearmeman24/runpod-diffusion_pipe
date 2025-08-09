@@ -18,9 +18,9 @@ export NETWORK_VOLUME
 
 echo "cd $NETWORK_VOLUME" >> /root/.bashrc
 
-cd "$NETWORK_VOLUME/diffusion_pipe_working_folder/diffusion-pipe" || exit 1
-git pull || true
-cd "$NETWORK_VOLUME" || exit 1
+#cd "$NETWORK_VOLUME/diffusion_pipe_working_folder/diffusion-pipe" || exit 1
+#git pull || true
+#cd "$NETWORK_VOLUME" || exit 1
 
 # Start Jupyter Lab with the working folder as the root directory
 # This puts users directly in their working environment and hides system files
