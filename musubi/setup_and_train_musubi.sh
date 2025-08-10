@@ -95,6 +95,7 @@ FRAME_EXTRACTION="${FRAME_EXTRACTION:-head}"
 FRAME_STRIDE="${FRAME_STRIDE:-1}"
 FRAME_SAMPLE="${FRAME_SAMPLE:-1}"
 MAX_FRAMES="${MAX_FRAMES:-129}"
+FP_LATENT_WINDOW_SIZE="${FP_LATENT_WINDOW_SIZE:-9}"
 
 # Flags to control repeatable behavior
 FORCE_SETUP="${FORCE_SETUP:-0}"
@@ -173,8 +174,14 @@ bucket_no_upscale = false
 caption_extension = "$CAPTION_EXT"
 
 [[datasets]]
+dataset_type = "video"
 video_directory = "$DATASET_DIR"
 target_frames = [${TARGET_FRAMES_NORM}]
+frame_extraction = "$FRAME_EXTRACTION"
+frame_stride = ${FRAME_STRIDE}
+frame_sample = ${FRAME_SAMPLE}
+max_frames = ${MAX_FRAMES}
+fp_latent_window_size = ${FP_LATENT_WINDOW_SIZE}
 batch_size = 1
 num_repeats = ${NUM_REPEATS}
 TOML
@@ -188,7 +195,7 @@ enable_bucket = true
 bucket_no_upscale = false
 num_repeats = ${NUM_REPEATS}
 
-[datasets]
+[[datasets]]
 image_directory = "$DATASET_DIR"
 cache_directory = "$DATASET_DIR/cache"
 num_repeats = ${NUM_REPEATS}
@@ -196,7 +203,7 @@ TOML
   fi
 
   echo ">>> dataset.toml written:"
-  sed -n '1,160p' "$DATASET_TOML"
+  sed -n '1,200p' "$DATASET_TOML"
 fi
 
 ########################################
@@ -218,6 +225,13 @@ fi
 # 7) Training env niceties
 ########################################
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True,max_split_size_mb:512
+
+########################################
+# ANSI colors for output
+########################################
+C_RESET="\033[0m"
+C_HIGH="\033[38;5;40m"   # green
+C_LOW="\033[38;5;214m"   # orange
 
 ########################################
 # 8) Launch training(s) — built from config
@@ -246,7 +260,8 @@ COMMON_FLAGS=(
 if [ "${GPU_COUNT}" -ge 2 ]; then
   echo ">>> 2+ GPUs: running HIGH on GPU0 and LOW on GPU1"
 
-  CUDA_VISIBLE_DEVICES=0 accelerate launch --num_cpu_threads_per_process 8 \
+  echo -e "${C_HIGH}[HIGH] Starting training...${C_RESET}"
+  env CUDA_VISIBLE_DEVICES=0 accelerate launch --num_cpu_threads_per_process 8 \
     "$REPO_DIR/wan_train_network.py" \
     --dit "$WAN_DIT_HIGH" \
     --preserve_distribution_shape --min_timestep 875 --max_timestep 1000 \
@@ -257,7 +272,8 @@ if [ "${GPU_COUNT}" -ge 2 ]; then
     --metadata_author "$AUTHOR" \
     "${COMMON_FLAGS[@]}" &
 
-  CUDA_VISIBLE_DEVICES=1 accelerate launch --num_cpu_threads_per_process 8 \
+  echo -e "${C_LOW}[LOW] Starting training...${C_RESET}"
+  env CUDA_VISIBLE_DEVICES=1 accelerate launch --num_cpu_threads_per_process 8 \
     "$REPO_DIR/wan_train_network.py" \
     --dit "$WAN_DIT_LOW" \
     --preserve_distribution_shape --min_timestep 0 --max_timestep 875 \
@@ -269,7 +285,7 @@ if [ "${GPU_COUNT}" -ge 2 ]; then
     "${COMMON_FLAGS[@]}" &
 
   wait
-  echo ">>> Both training processes exited."
+  echo ">>> Both training processes completed."
 
 else
   echo ">>> Only 1 GPU detected."
@@ -280,7 +296,7 @@ else
 
   if [ "$choice" = "1" ]; then
     echo ">>> Training HIGH-noise model on GPU0"
-    CUDA_VISIBLE_DEVICES=0 accelerate launch --num_cpu_threads_per_process 8 \
+    accelerate launch --num_cpu_threads_per_process 8 \
       "$REPO_DIR/wan_train_network.py" \
       --dit "$WAN_DIT_HIGH" \
       --preserve_distribution_shape --min_timestep 875 --max_timestep 1000 \
@@ -290,10 +306,9 @@ else
       --metadata_title "$TITLE_HIGH" \
       --metadata_author "$AUTHOR" \
       "${COMMON_FLAGS[@]}"
-
   elif [ "$choice" = "2" ]; then
     echo ">>> Training LOW-noise model on GPU0"
-    CUDA_VISIBLE_DEVICES=0 accelerate launch --num_cpu_threads_per_process 8 \
+    accelerate launch --num_cpu_threads_per_process 8 \
       "$REPO_DIR/wan_train_network.py" \
       --dit "$WAN_DIT_LOW" \
       --preserve_distribution_shape --min_timestep 0 --max_timestep 875 \
@@ -303,7 +318,6 @@ else
       --metadata_title "$TITLE_LOW" \
       --metadata_author "$AUTHOR" \
       "${COMMON_FLAGS[@]}"
-
   else
     echo "Invalid choice. Aborting."
     exit 1
