@@ -131,7 +131,7 @@ if [ ! -f "$SETUP_MARKER" ] || [ "$FORCE_SETUP" = "1" ]; then
   # 3) Python deps
   pip install -e .
   pip install torch==2.7.0 torchvision==0.22.0 xformers==0.0.30 --index-url https://download.pytorch.org/whl/cu128
-  pip install protobuf six huggingface_hub==0.30.0
+  pip install protobuf six huggingface_hub==0.34.0
   pip install hf_transfer hf_xet || true
   export HF_HUB_ENABLE_HF_TRANSFER=1 || true
 
@@ -168,22 +168,15 @@ else
     cat > "$DATASET_TOML" <<TOML
 [general]
 resolution = [${RESOLUTION_LIST_NORM}]
-random_crop = true
 enable_bucket = true
 bucket_no_upscale = false
-batch_size = 1
-num_repeats = ${NUM_REPEATS}
 caption_extension = "$CAPTION_EXT"
 
 [[datasets]]
-dataset_type = "video"
 video_directory = "$DATASET_DIR"
 target_frames = [${TARGET_FRAMES_NORM}]
-frame_extraction = "$FRAME_EXTRACTION"
-frame_stride = ${FRAME_STRIDE}
-frame_sample = ${FRAME_SAMPLE}
-max_frames = ${MAX_FRAMES}
-fp_latent_window_size = 9
+batch_size = 1
+num_repeats = ${NUM_REPEATS}
 TOML
   else
     cat > "$DATASET_TOML" <<TOML
@@ -195,7 +188,7 @@ enable_bucket = true
 bucket_no_upscale = false
 num_repeats = ${NUM_REPEATS}
 
-[[datasets]]
+[datasets]
 image_directory = "$DATASET_DIR"
 cache_directory = "$DATASET_DIR/cache"
 num_repeats = ${NUM_REPEATS}

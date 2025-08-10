@@ -2,25 +2,25 @@
 
 # ====== Wan 2.2 Config File ======
 # LoRA rank drives both network_dim and network_alpha
-LORA_RANK=32
+LORA_RANK=16
 
 # training schedule
-MAX_EPOCHS=150
-SAVE_EVERY=25
+MAX_EPOCHS=80
+SAVE_EVERY=40
 
 # seeds (used for the two jobs; if only 1 GPU you'll be asked to pick high/low)
 SEED_HIGH=41
 SEED_LOW=42
 
 # optimizer
-LEARNING_RATE=1e-4
+LEARNING_RATE=3e-4
 
 # dataset: "video" or "image"
 DATASET_TYPE=image
 
 # resolution list for bucketed training (must be TOML-ish array)
 # e.g. [896, 1152] or [1024, 1024]
-RESOLUTION_LIST="896, 1152"
+RESOLUTION_LIST="1536, 1536"
 
 # common dataset paths (adjust if you keep data elsewhere)
 WORKDIR="/musubi"
