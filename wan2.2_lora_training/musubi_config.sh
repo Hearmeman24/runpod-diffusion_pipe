@@ -20,20 +20,20 @@ DATASET_TYPE=image
 
 # resolution list for bucketed training (must be TOML-ish array)
 # e.g. [896, 1152] or [1024, 1024]
-RESOLUTION_LIST="1216, 1216"
+RESOLUTION_LIST="1024, 1024"
 
 # common dataset paths (adjust if you keep data elsewhere)
 WORKDIR="/musubi"
-DATASET_DIR="/diffusion_pipe_working_folder/video_dataset_here"
+DATASET_DIR="/diffusion_pipe_working_folder/image_dataset_here"
+
+# ---- IMAGE options (used only when DATASET_TYPE=image) ----
+BATCH_SIZE=1
+NUM_REPEATS=1
 
 # ---- VIDEO options (used only when DATASET_TYPE=video) ----
 # frames per sample; TOML array (Musubi rounds like [1,57,117])
 TARGET_FRAMES="1, 57, 117"
 FRAME_EXTRACTION="head"     # head | middle | tail (per wan2.2_lora_training docs)
-NUM_REPEATS=1
-
-# ---- IMAGE options (used only when DATASET_TYPE=image) ----
-BATCH_SIZE=1
 NUM_REPEATS=1
 
 # Optional caption extension used by both modes
