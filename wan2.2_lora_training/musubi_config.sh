@@ -24,7 +24,7 @@ RESOLUTION_LIST="1024, 1024"
 
 # common dataset paths (adjust if you keep data elsewhere)
 WORKDIR="/musubi"
-DATASET_DIR="/diffusion_pipe_working_folder/image_dataset_here"
+DATASET_DIR="$NETWORK_VOLUME/diffusion_pipe_working_folder/image_dataset_here"
 
 # ---- IMAGE options (used only when DATASET_TYPE=image) ----
 BATCH_SIZE=1
