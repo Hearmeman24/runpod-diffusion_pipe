@@ -29,7 +29,7 @@ DATASET_DIR="/diffusion_pipe_working_folder/video_dataset_here"
 # ---- VIDEO options (used only when DATASET_TYPE=video) ----
 # frames per sample; TOML array (Musubi rounds like [1,57,117])
 TARGET_FRAMES="1, 57, 117"
-FRAME_EXTRACTION="head"     # head | middle | tail (per musubi docs)
+FRAME_EXTRACTION="head"     # head | middle | tail (per wan2.2_lora_training docs)
 NUM_REPEATS=1
 
 # ---- IMAGE options (used only when DATASET_TYPE=image) ----
