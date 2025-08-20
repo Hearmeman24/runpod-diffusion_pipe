@@ -1,33 +1,92 @@
-HearmemanAI LoRA Trainer using Diffusion Pipe - Quick Start Guide
+===============================================================================
+              HearmemanAI LoRA Trainer using Diffusion Pipe
+                           Quick Start Guide
+===============================================================================
 
+Watch the detailed video tutorial: https://www.youtube.com/watch?v=7OqUU_Cv8C8
+
+NOTE: For Wan 2.2 training, please open the wan2.2_lora_training folder 
+      and view the Wan2.2HowToUse.txt file
+
+===============================================================================
 GETTING STARTED
+===============================================================================
 
-Step 1: Open Terminal and enter bash shell
-Click the Terminal button to open a command prompt.
-Type bash
-Click ENTER
+STEP 1: Initialize Terminal Environment
+---------------------------------------
+1. Click the Terminal button to open a command prompt
+2. Type: bash
+3. Press ENTER to enter bash shell
 
-Step 2: Start Training
-Type: bash interactive_start_training.sh
+STEP 2: Start Interactive Training Process
+------------------------------------------
+Type the following command and press ENTER:
 
-Step 3: Follow Instructions
-The script will guide you through:
-- Model selection (Flux, SDXL, or Wan models)
-- API keys (Hugging Face for Flux, Gemini for videos)
-- Dataset options (image/video captioning)
+   bash interactive_start_training.sh
+
+STEP 3: Follow the Interactive Setup
+------------------------------------
+The script will guide you through configuration options:
+
+Model Selection:
+- Flux models
+- SDXL models  
+- Wan models
+
+API Key Configuration:
+- Hugging Face API key (required for Flux models)
+- Gemini API key (required for video processing)
+
+Dataset Processing:
+- Image captioning options
+- Video captioning options
 - Training configuration review
 
-Step 4: Wait for Completion
-The script automatically downloads models, generates captions, and starts training.
+STEP 4: Wait for Completion
+---------------------------
+The automated process will:
+- Download required models
+- Generate captions for your dataset
+- Start the training process
+- Save results when complete
 
-RESULTS
-Your trained LoRA files will be saved in: training_outputs
+===============================================================================
+RESULTS LOCATION
+===============================================================================
 
-PREPARATION
-Place your training data in:
-- Images: image_dataset_here/ folder
-- Videos: video_dataset_here/ folder
+Your trained LoRA files will be saved in: training_outputs/
 
-TIPS
-- Have API keys ready before starting
-- First run takes longer due to model downloads
+===============================================================================
+PREPARATION CHECKLIST
+===============================================================================
+
+[ ] Training data placed in correct folder:
+    - Images: image_dataset_here/ folder
+    - Videos: video_dataset_here/ folder
+
+[ ] API keys ready:
+    - Hugging Face API key (for Flux models)
+    - Gemini API key (for video processing)
+
+===============================================================================
+PRO TIPS
+===============================================================================
+
+API Keys: Have all required API keys ready before starting the interactive 
+process to avoid interruptions
+
+First Run: Initial setup takes longer due to model downloads - be patient!
+
+Interactive Guide: The script will walk you through each step, making it 
+beginner-friendly
+
+Model Choice: Choose your model type based on your specific use case:
+- Flux: Latest high-quality diffusion models
+- SDXL: Stable and well-supported option
+- Wan: Specialized for certain applications
+
+Results: Check the training_outputs/ folder for your completed LoRA files
+
+===============================================================================
+
+Happy training!

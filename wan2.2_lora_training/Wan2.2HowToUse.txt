@@ -1,0 +1,93 @@
+===============================================================================
+                    HearmemanAI LoRA Trainer for Wan 2.2
+                           Quick Start Guide
+===============================================================================
+
+Watch the detailed video tutorial: https://youtu.be/kdfANZrJSp8
+
+===============================================================================
+GETTING STARTED
+===============================================================================
+
+STEP 1: Initialize Terminal Environment
+---------------------------------------
+1. Click the Terminal button to open a command prompt
+2. Type: bash
+3. Press ENTER to enter bash shell
+
+STEP 2: Caption Your Training Data
+----------------------------------
+
+Data Preparation:
+Add your training files to the appropriate folder:
+- Images: Place in image_dataset_here/ folder
+- Videos: Place in video_dataset_here/ folder
+
+NOTE: Use only one data type (images OR videos) per training session.
+
+Captioning Process:
+1. Open a bash shell (follow Step 1)
+2. Navigate to captioning directory:
+   
+   cd Captioning
+
+For Videos:
+   bash video_captioner.sh
+   
+   IMPORTANT: Set your GEMINI_API_KEY environment variable before running
+
+For Images:
+   cd JoyCaption
+   bash JoyCaptionRunner.sh --trigger-word YourLoRATriggerWord
+
+STEP 3: Configure and Start Training
+------------------------------------
+1. Repeat Step 1 to open a fresh terminal
+2. Navigate to the training folder and configure settings:
+   - Click on wan2.2_lora_training folder
+   - Open musubi_config.sh file
+   - Modify relevant training parameters
+   - Save your changes
+
+3. Start the training process:
+   
+   cd wan2.2_lora_training
+   bash setup_and_train_musubi.sh
+
+4. The script will prompt you to select training model type:
+   - High noise model
+   - Low noise model
+   - If you have 2 GPUs deployed, both models will train automatically
+
+STEP 4: Wait for Completion
+---------------------------
+The training process will:
+- Automatically download required models
+- Begin training with your configured settings
+- Display output file locations upon completion
+
+===============================================================================
+PREPARATION CHECKLIST
+===============================================================================
+
+[ ] Training data placed in correct folder (image_dataset_here/ or video_dataset_here/)
+[ ] API keys configured (especially GEMINI_API_KEY for video captioning)
+[ ] Training parameters configured in musubi_config.sh
+
+===============================================================================
+PRO TIPS
+===============================================================================
+
+API Keys: Have all required API keys ready before starting the process
+
+First Run: Initial setup takes longer due to model downloads - be patient!
+
+GPU Setup: If using multiple GPUs, the script will automatically optimize 
+training across them
+
+Monitoring: Keep an eye on the terminal output for progress updates and any 
+error messages
+
+===============================================================================
+
+Happy training!
