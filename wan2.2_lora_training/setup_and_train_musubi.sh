@@ -58,7 +58,7 @@ fi
 ########################################
 # Derived paths (from WORKDIR & DATASET_DIR)
 ########################################
-WORKDIR="${WORKDIR:-/$NETWORK_VOLUME/wan2.2_lora_training}"
+WORKDIR="${WORKDIR:-$NETWORK_VOLUME/wan2.2_lora_training}"
 DATASET_DIR="${DATASET_DIR:-$WORKDIR/dataset_here}"
 
 REPO_DIR="$WORKDIR/musubi-tuner"
