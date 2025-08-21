@@ -5,8 +5,8 @@
 LORA_RANK=16
 
 # training schedule
-MAX_EPOCHS=10
-SAVE_EVERY=10
+MAX_EPOCHS=100
+SAVE_EVERY=20
 
 # seeds (used for the two jobs; if only 1 GPU you'll be asked to pick high/low)
 SEED_HIGH=41
