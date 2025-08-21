@@ -58,7 +58,7 @@ fi
 ########################################
 # Derived paths (from WORKDIR & DATASET_DIR)
 ########################################
-WORKDIR="${WORKDIR:-/wan2.2_lora_training}"
+WORKDIR="${WORKDIR:-/$NETWORK_VOLUME/wan2.2_lora_training}"
 DATASET_DIR="${DATASET_DIR:-$WORKDIR/dataset_here}"
 
 REPO_DIR="$WORKDIR/musubi-tuner"
@@ -138,13 +138,13 @@ if [ ! -f "$SETUP_MARKER" ] || [ "$FORCE_SETUP" = "1" ]; then
 
   # 4) Download models (idempotent)
   echo ">>> Downloading models to $MODELS_DIR ..."
-  huggingface-cli download Wan-AI/Wan2.1-I2V-14B-720P models_t5_umt5-xxl-enc-bf16.pth \
+  hf download Wan-AI/Wan2.1-I2V-14B-720P models_t5_umt5-xxl-enc-bf16.pth \
     --local-dir "$MODELS_DIR/text_encoders" --local-dir-use-symlinks False
-  huggingface-cli download Comfy-Org/Wan_2.1_ComfyUI_repackaged split_files/vae/wan_2.1_vae.safetensors \
+  hf download Comfy-Org/Wan_2.1_ComfyUI_repackaged split_files/vae/wan_2.1_vae.safetensors \
     --local-dir "$MODELS_DIR/vae" --local-dir-use-symlinks False
-  huggingface-cli download Comfy-Org/Wan_2.2_ComfyUI_Repackaged split_files/diffusion_models/wan2.2_t2v_high_noise_14B_fp16.safetensors \
+  hf download Comfy-Org/Wan_2.2_ComfyUI_Repackaged split_files/diffusion_models/wan2.2_t2v_high_noise_14B_fp16.safetensors \
     --local-dir "$MODELS_DIR/diffusion_models" --local-dir-use-symlinks False
-  huggingface-cli download Comfy-Org/Wan_2.2_ComfyUI_Repackaged split_files/diffusion_models/wan2.2_t2v_low_noise_14B_fp16.safetensors \
+  hf download Comfy-Org/Wan_2.2_ComfyUI_Repackaged split_files/diffusion_models/wan2.2_t2v_low_noise_14B_fp16.safetensors \
     --local-dir "$MODELS_DIR/diffusion_models" --local-dir-use-symlinks False
 
   touch "$SETUP_MARKER"
