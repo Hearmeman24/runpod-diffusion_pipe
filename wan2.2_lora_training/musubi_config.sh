@@ -5,8 +5,8 @@
 LORA_RANK=16
 
 # training schedule
-MAX_EPOCHS=100
-SAVE_EVERY=20
+MAX_EPOCHS=10
+SAVE_EVERY=10
 
 # seeds (used for the two jobs; if only 1 GPU you'll be asked to pick high/low)
 SEED_HIGH=41
@@ -23,8 +23,11 @@ DATASET_TYPE=image
 RESOLUTION_LIST="1024, 1024"
 
 # common dataset paths (adjust if you keep data elsewhere)
-WORKDIR="/musubi"
 DATASET_DIR="$NETWORK_VOLUME/image_dataset_here"
+
+# Select LoRA Names
+TITLE_HIGH="Your High Noise LoRA Name Here"
+TITLE_LOW="Your Low Noise LoRA Name Here"
 
 # ---- IMAGE options (used only when DATASET_TYPE=image) ----
 BATCH_SIZE=1
