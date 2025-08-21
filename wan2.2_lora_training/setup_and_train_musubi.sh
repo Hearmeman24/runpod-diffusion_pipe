@@ -139,13 +139,13 @@ if [ ! -f "$SETUP_MARKER" ] || [ "$FORCE_SETUP" = "1" ]; then
   # 4) Download models (idempotent)
   echo ">>> Downloading models to $MODELS_DIR ..."
   hf download Wan-AI/Wan2.1-I2V-14B-720P models_t5_umt5-xxl-enc-bf16.pth \
-    --local-dir "$MODELS_DIR/text_encoders" --local-dir-use-symlinks False
+    --local-dir "$MODELS_DIR/text_encoders"
   hf download Comfy-Org/Wan_2.1_ComfyUI_repackaged split_files/vae/wan_2.1_vae.safetensors \
-    --local-dir "$MODELS_DIR/vae" --local-dir-use-symlinks False
+    --local-dir "$MODELS_DIR/vae"
   hf download Comfy-Org/Wan_2.2_ComfyUI_Repackaged split_files/diffusion_models/wan2.2_t2v_high_noise_14B_fp16.safetensors \
-    --local-dir "$MODELS_DIR/diffusion_models" --local-dir-use-symlinks False
+    --local-dir "$MODELS_DIR/diffusion_models"
   hf download Comfy-Org/Wan_2.2_ComfyUI_Repackaged split_files/diffusion_models/wan2.2_t2v_low_noise_14B_fp16.safetensors \
-    --local-dir "$MODELS_DIR/diffusion_models" --local-dir-use-symlinks False
+    --local-dir "$MODELS_DIR/diffusion_models"
 
   touch "$SETUP_MARKER"
   echo ">>> Setup complete."
