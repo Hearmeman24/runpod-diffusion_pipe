@@ -23,7 +23,8 @@ DATASET_TYPE=image
 RESOLUTION_LIST="1024, 1024"
 
 # common dataset paths (adjust if you keep data elsewhere)
-DATASET_DIR="$NETWORK_VOLUME/image_dataset_here"
+WORKDIR="/musubi"
+DATASET_DIR="/workspace/diffusion_pipe_working_folder/image_dataset_here"
 
 # Select LoRA Names
 TITLE_HIGH="Your High Noise LoRA Name Here"
