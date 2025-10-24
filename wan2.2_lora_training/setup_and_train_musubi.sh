@@ -174,7 +174,6 @@ bucket_no_upscale = false
 caption_extension = "$CAPTION_EXT"
 
 [[datasets]]
-dataset_type = "video"
 video_directory = "$DATASET_DIR"
 target_frames = [${TARGET_FRAMES_NORM}]
 frame_extraction = "$FRAME_EXTRACTION"
