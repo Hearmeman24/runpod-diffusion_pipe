@@ -9,6 +9,7 @@ BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
+WHITE='\033[0;37m'
 NC='\033[0m' # No Color
 
 # Function to print colored output
@@ -53,10 +54,11 @@ echo "2) SDXL"
 echo "3) Wan 1.3B"
 echo "4) Wan 14B Text-To-Video (Supports both T2V and I2V)"
 echo "5) Wan 14B Image-To-Video (Not recommended, for advanced users only)"
+echo "6) Qwen Image"
 echo ""
 
 while true; do
-    read -p "Enter your choice (1-5): " model_choice
+    read -p "Enter your choice (1-6): " model_choice
     case $model_choice in
         1)
             MODEL_TYPE="flux"
@@ -88,8 +90,14 @@ while true; do
             TOML_FILE="wan14b_i2v.toml"
             break
             ;;
+        6)
+            MODEL_TYPE="qwen"
+            MODEL_NAME="Qwen Image"
+            TOML_FILE="qwen_toml.toml"
+            break
+            ;;
         *)
-            print_error "Invalid choice. Please enter a number between 1-5."
+            print_error "Invalid choice. Please enter a number between 1-6."
             ;;
     esac
 done
@@ -288,19 +296,18 @@ echo ""
 print_info "Configuration completed! Starting model download and setup..."
 echo ""
 
-# Start model download in background immediately after configuration
-print_info "Configuration completed! Starting model download and setup..."
-echo ""
-
 # Model download logic - start in background
 print_header "Starting Model Download"
 echo ""
 
 mkdir -p "$NETWORK_VOLUME/models"
 
+# Initialize MODEL_DOWNLOAD_PID to ensure it's always set
+MODEL_DOWNLOAD_PID=""
+
 case $MODEL_TYPE in
     "flux")
-        if [ -z "$HUGGING_FACE_TOKEN" ] || [ "$HUGGING_FACE_TOKEN" == "token_here" ]; then
+        if [ -z "$HUGGING_FACE_TOKEN" ] || [ "$HUGGING_FACE_TOKEN" = "token_here" ]; then
             print_error "HUGGING_FACE_TOKEN is not set properly."
             exit 1
         fi
@@ -358,6 +365,17 @@ case $MODEL_TYPE in
         huggingface-cli download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
+
+    "qwen")
+        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/qwen_toml.toml" ]; then
+            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/qwen_toml.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+            print_success "Moved qwen_toml.toml to examples directory"
+        fi
+        print_info "Starting Qwen Image model download in background..."
+        mkdir -p "$NETWORK_VOLUME/models/Qwen-Image"
+        huggingface-cli download Qwen/Qwen-Image --local-dir "$NETWORK_VOLUME/models/Qwen-Image" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        MODEL_DOWNLOAD_PID=$!
+        ;;
 esac
 
 echo ""
@@ -400,14 +418,32 @@ if [ "$CAPTION_MODE" != "skip" ]; then
 
             # Wait for image captioning with progress indicator
             print_info "Waiting for image captioning to complete..."
+            timeout_counter=0
+            max_timeout=3600  # 1 hour timeout
             while kill -0 "$IMAGE_CAPTION_PID" 2>/dev/null; do
                 if tail -n 1 "$NETWORK_VOLUME/logs/image_captioning.log" 2>/dev/null | grep -q "All done!"; then
                     break
                 fi
+                # Check for errors in log
+                if tail -n 10 "$NETWORK_VOLUME/logs/image_captioning.log" 2>/dev/null | grep -qi "error\|failed\|exception"; then
+                    print_error "Image captioning encountered errors. Check log: $NETWORK_VOLUME/logs/image_captioning.log"
+                    exit 1
+                fi
                 echo -n "."
                 sleep 2
+                timeout_counter=$((timeout_counter + 2))
+                if [ $timeout_counter -ge $max_timeout ]; then
+                    print_error "Image captioning timed out after 1 hour. Check log: $NETWORK_VOLUME/logs/image_captioning.log"
+                    exit 1
+                fi
             done
             echo ""
+            # Verify captioning actually completed successfully
+            wait "$IMAGE_CAPTION_PID"
+            if [ $? -ne 0 ]; then
+                print_error "Image captioning failed. Check log: $NETWORK_VOLUME/logs/image_captioning.log"
+                exit 1
+            fi
             print_success "Image captioning completed!"
         else
             print_error "JoyCaption script not found at: $JOY_CAPTION_SCRIPT"
@@ -426,12 +462,24 @@ if [ "$CAPTION_MODE" != "skip" ]; then
 
             # Wait for video captioning with progress indicator
             print_info "Waiting for video captioning to complete..."
+            timeout_counter=0
+            max_timeout=7200  # 2 hour timeout (videos take longer)
             while kill -0 "$VIDEO_CAPTION_PID" 2>/dev/null; do
                 if tail -n 1 "$NETWORK_VOLUME/logs/video_captioning.log" 2>/dev/null | grep -q "video captioning complete"; then
                     break
                 fi
+                # Check for errors in log
+                if tail -n 10 "$NETWORK_VOLUME/logs/video_captioning.log" 2>/dev/null | grep -qi "error\|failed\|exception"; then
+                    print_error "Video captioning encountered errors. Check log: $NETWORK_VOLUME/logs/video_captioning.log"
+                    exit 1
+                fi
                 echo -n "."
                 sleep 2
+                timeout_counter=$((timeout_counter + 2))
+                if [ $timeout_counter -ge $max_timeout ]; then
+                    print_error "Video captioning timed out after 2 hours. Check log: $NETWORK_VOLUME/logs/video_captioning.log"
+                    exit 1
+                fi
             done
             echo ""
 
@@ -439,7 +487,7 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             if [ $? -eq 0 ]; then
                 print_success "Video captioning completed successfully"
             else
-                print_error "Video captioning failed"
+                print_error "Video captioning failed. Check log: $NETWORK_VOLUME/logs/video_captioning.log"
                 exit 1
             fi
         else
@@ -456,13 +504,74 @@ if [ -n "$MODEL_DOWNLOAD_PID" ]; then
     print_header "Finalizing Model Download"
     echo ""
     print_info "Waiting for model download to complete..."
+    timeout_counter=0
+    max_timeout=10800  # 3 hour timeout for large models
     while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
+        # Check for errors in log
+        if tail -n 20 "$NETWORK_VOLUME/logs/model_download.log" 2>/dev/null | grep -qi "error\|failed\|exception\|unauthorized\|403\|404"; then
+            print_error "Model download encountered errors. Check log: $NETWORK_VOLUME/logs/model_download.log"
+            kill "$MODEL_DOWNLOAD_PID" 2>/dev/null || true
+            exit 1
+        fi
         echo -n "."
         sleep 3
+        timeout_counter=$((timeout_counter + 3))
+        if [ $timeout_counter -ge $max_timeout ]; then
+            print_error "Model download timed out after 3 hours. Check log: $NETWORK_VOLUME/logs/model_download.log"
+            kill "$MODEL_DOWNLOAD_PID" 2>/dev/null || true
+            exit 1
+        fi
     done
     echo ""
     wait "$MODEL_DOWNLOAD_PID"
-    print_success "Model download completed!"
+    download_exit_code=$?
+    
+    if [ $download_exit_code -ne 0 ]; then
+        print_error "Model download failed with exit code $download_exit_code. Check log: $NETWORK_VOLUME/logs/model_download.log"
+        exit 1
+    fi
+    
+    # Verify model files actually exist based on MODEL_TYPE
+    print_info "Verifying model download..."
+    case $MODEL_TYPE in
+        "flux")
+            if [ ! -f "$NETWORK_VOLUME/models/flux/flux1-dev.safetensors" ] && [ ! -d "$NETWORK_VOLUME/models/flux" ]; then
+                print_error "Flux model files not found after download. Check log: $NETWORK_VOLUME/logs/model_download.log"
+                exit 1
+            fi
+            ;;
+        "sdxl")
+            if [ ! -f "$NETWORK_VOLUME/models/sdXL_v10VAEFix.safetensors" ]; then
+                print_error "SDXL model file not found after download. Check log: $NETWORK_VOLUME/logs/model_download.log"
+                exit 1
+            fi
+            ;;
+        "wan13")
+            if [ ! -d "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" ] || [ -z "$(ls -A "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" 2>/dev/null)" ]; then
+                print_error "Wan 1.3B model files not found after download. Check log: $NETWORK_VOLUME/logs/model_download.log"
+                exit 1
+            fi
+            ;;
+        "wan14b_t2v")
+            if [ ! -d "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" ] || [ -z "$(ls -A "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" 2>/dev/null)" ]; then
+                print_error "Wan 14B T2V model files not found after download. Check log: $NETWORK_VOLUME/logs/model_download.log"
+                exit 1
+            fi
+            ;;
+        "wan14b_i2v")
+            if [ ! -d "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" ] || [ -z "$(ls -A "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" 2>/dev/null)" ]; then
+                print_error "Wan 14B I2V model files not found after download. Check log: $NETWORK_VOLUME/logs/model_download.log"
+                exit 1
+            fi
+            ;;
+        "qwen")
+            if [ ! -d "$NETWORK_VOLUME/models/Qwen-Image" ] || [ -z "$(ls -A "$NETWORK_VOLUME/models/Qwen-Image" 2>/dev/null)" ]; then
+                print_error "Qwen Image model files not found after download. Check log: $NETWORK_VOLUME/logs/model_download.log"
+                exit 1
+            fi
+            ;;
+    esac
+    print_success "Model download completed and verified!"
     echo ""
 fi
 
@@ -479,16 +588,23 @@ if [ -f "$DATASET_TOML" ]; then
     cp "$DATASET_TOML" "$DATASET_TOML.backup"
 
     # Replace $NETWORK_VOLUME with actual path in image directory
-    sed -i "s|\$NETWORK_VOLUME/image_dataset_here|$NETWORK_VOLUME/image_dataset_here|g" "$DATASET_TOML"
+    sed -i "s|\$NETWORK_VOLUME/image_dataset_here|$NETWORK_VOLUME/image_dataset_here|g" "$DATASET_TOML" 2>/dev/null || print_warning "Failed to update image directory path in dataset.toml"
 
     # Replace $NETWORK_VOLUME with actual path in video directory (even if commented)
-    sed -i "s|\$NETWORK_VOLUME/video_dataset_here|$NETWORK_VOLUME/video_dataset_here|g" "$DATASET_TOML"
+    sed -i "s|\$NETWORK_VOLUME/video_dataset_here|$NETWORK_VOLUME/video_dataset_here|g" "$DATASET_TOML" 2>/dev/null || print_warning "Failed to update video directory path in dataset.toml"
 
     # Uncomment video dataset section if user wants to caption videos
     if [ "$CAPTION_MODE" = "videos" ] || [ "$CAPTION_MODE" = "both" ]; then
         print_info "Enabling video dataset in configuration..."
         # Uncomment the video directory section
-        sed -i '/# \[\[directory\]\]/,/# num_repeats = 5/ s/^# //' "$DATASET_TOML"
+        sed -i '/# \[\[directory\]\]/,/# num_repeats = 5/ s/^# //' "$DATASET_TOML" 2>/dev/null
+        # Verify uncommenting worked by checking if video directory section exists uncommented
+        if ! grep -q "^\[\[directory\]\]" "$DATASET_TOML" || [ -z "$(grep -A2 "^\[\[directory\]\]" "$DATASET_TOML" | grep -m1 "video_dataset_here")" ]; then
+            # Check if there's a commented video section that wasn't uncommented
+            if grep -q "# path = '\$NETWORK_VOLUME/video_dataset_here'" "$DATASET_TOML"; then
+                print_warning "Video dataset section may not have been uncommented correctly. Please check dataset.toml manually."
+            fi
+        fi
     fi
 
     print_success "Dataset configuration updated"
@@ -536,7 +652,12 @@ fi
 
 echo -e "${BOLD}Model:${NC} $MODEL_NAME"
 echo -e "${BOLD}TOML Config:${NC} examples/$TOML_FILE"
-echo -e "${BOLD}Resolution:${NC} ${RESOLUTION}"
+# Only show resolution as WxH if it's a number, otherwise show as-is
+if [[ "$RESOLUTION" =~ ^[0-9]+$ ]]; then
+    echo -e "${BOLD}Resolution:${NC} ${RESOLUTION}x${RESOLUTION}"
+else
+    echo -e "${BOLD}Resolution:${NC} ${RESOLUTION}"
+fi
 echo ""
 
 echo -e "${BOLD}Training Parameters:${NC}"
@@ -667,7 +788,12 @@ while true; do
                         print_header "Updated Training Configuration"
                         echo ""
                         echo -e "${BOLD}Model:${NC} $MODEL_NAME"
-                        echo -e "${BOLD}Resolution:${NC} ${RESOLUTION}x${RESOLUTION}"
+                        # Only show resolution as WxH if it's a number, otherwise show as-is
+                        if [[ "$RESOLUTION" =~ ^[0-9]+$ ]]; then
+                            echo -e "${BOLD}Resolution:${NC} ${RESOLUTION}x${RESOLUTION}"
+                        else
+                            echo -e "${BOLD}Resolution:${NC} ${RESOLUTION}"
+                        fi
                         echo ""
                         echo -e "${BOLD}Updated Training Parameters:${NC}"
                         echo "  📊 Epochs: $EPOCHS"
