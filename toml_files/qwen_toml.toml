@@ -1,7 +1,7 @@
 # Output path for training runs. Each training run makes a new directory in here.
 output_dir = '/training_outputs/diffusion_pipe_training_runs/qwen_lora'
 
-save_every_n_epochs = 40
+save_every_n_epochs = 20
 epochs = 80
 pipeline_stages = 1
 micro_batch_size_per_gpu = 1  
