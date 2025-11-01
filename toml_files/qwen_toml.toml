@@ -3,8 +3,8 @@ output_dir = '/training_outputs/diffusion_pipe_training_runs/qwen_lora'
 
 save_every_n_epochs = 40
 epochs = 80
-pipeline_stages = 2
-micro_batch_size_per_gpu = 2  
+pipeline_stages = 1
+micro_batch_size_per_gpu = 1  
 gradient_accumulation_steps = 1
 activation_checkpointing = true
 dataset = 'examples/dataset.toml'
