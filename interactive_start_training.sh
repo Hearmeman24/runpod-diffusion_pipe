@@ -972,6 +972,15 @@ echo ""
 print_info "Changing to diffusion_pipe directory..."
 cd "$NETWORK_VOLUME/diffusion_pipe"
 
+print_info "Ensuring dependencies are up to date before training..."
+print_info "Upgrading transformers package..."
+pip install transformers -U
+
+print_info "Upgrading peft package..."
+pip install --upgrade "peft>=0.17.0"
+
+echo ""
+
 print_info "Starting LoRA training with $MODEL_NAME..."
 print_info "Using configuration: examples/$TOML_FILE"
 echo ""
