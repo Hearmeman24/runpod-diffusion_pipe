@@ -28,7 +28,7 @@ text_encoder_2_lr = 1e-4
 
 [adapter]
 type = "lora"  
-rank = 8  
+rank = 32  
 #dropout = 0.1  
 dtype = "bfloat16"  
 # init_from_existing = "path/to/pretrained/lora"  

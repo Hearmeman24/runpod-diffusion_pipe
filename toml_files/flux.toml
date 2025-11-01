@@ -11,7 +11,7 @@ dataset = 'examples/dataset.toml'
 # training settings
 
 # I usually set this to a really high value because I don't know how long I want to train.
-epochs = 50
+epochs = 80
 # Batch size of a single forward/backward pass for one GPU.
 micro_batch_size_per_gpu = 1
 # Pipeline parallelism degree. A single instance of the model is divided across this many GPUs.
@@ -37,7 +37,7 @@ eval_gradient_accumulation_steps = 1
 # misc settings
 
 # Probably want to set this a bit higher if you have a smaller dataset so you don't end up with a million saved models.
-save_every_n_epochs = 5
+save_every_n_epochs = 10
 # Can checkpoint the training state every n number of epochs or minutes. Set only one of these. You can resume from checkpoints using the --resume_from_checkpoint flag.
 #checkpoint_every_n_epochs = 1
 checkpoint_every_n_minutes = 120
@@ -77,7 +77,7 @@ flux_shift = true
 # For models that support full fine tuning, simply delete or comment out the [adapter] table to FFT.
 [adapter]
 type = 'lora'
-rank = 16
+rank = 32
 # Dtype for the LoRA weights you are training.
 dtype = 'bfloat16'
 # You can initialize the lora weights from a previously trained lora.
@@ -87,7 +87,7 @@ dtype = 'bfloat16'
 # AdamW from the optimi library is a good default since it automatically uses Kahan summation when training bfloat16 weights.
 # Look at train.py for other options. You could also easily edit the file and add your own.
 type = 'adamw_optimi'
-lr = 2e-5
+lr = 2e-4
 betas = [0.9, 0.99]
 weight_decay = 0.01
 eps = 1e-8
