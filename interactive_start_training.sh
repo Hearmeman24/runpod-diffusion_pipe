@@ -319,7 +319,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Flux model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/flux"
-        huggingface-cli download black-forest-labs/FLUX.1-dev --local-dir "$NETWORK_VOLUME/models/flux" --repo-type model --token "$HUGGING_FACE_TOKEN" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        hf download black-forest-labs/FLUX.1-dev --local-dir "$NETWORK_VOLUME/models/flux" --repo-type model --token "$HUGGING_FACE_TOKEN" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -329,7 +329,7 @@ case $MODEL_TYPE in
             print_success "Moved sdxl.toml to examples directory"
         fi
         print_info "Starting Base SDXL model download in background..."
-        huggingface-cli download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        hf download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -340,7 +340,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Wan 1.3B model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B"
-        huggingface-cli download Wan-AI/Wan2.1-T2V-1.3B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        hf download Wan-AI/Wan2.1-T2V-1.3B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -351,7 +351,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Wan 14B T2V model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B"
-        huggingface-cli download Wan-AI/Wan2.1-T2V-14B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        hf download Wan-AI/Wan2.1-T2V-14B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -362,7 +362,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Wan 14B I2V model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P"
-        huggingface-cli download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        hf download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -373,7 +373,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Qwen Image model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Qwen-Image"
-        huggingface-cli download Qwen/Qwen-Image --local-dir "$NETWORK_VOLUME/models/Qwen-Image" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        hf download Qwen/Qwen-Image --local-dir "$NETWORK_VOLUME/models/Qwen-Image" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 esac
