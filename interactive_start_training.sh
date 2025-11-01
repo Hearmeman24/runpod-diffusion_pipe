@@ -475,11 +475,13 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             timeout_counter=0
             max_timeout=3600  # 1 hour timeout
             while kill -0 "$IMAGE_CAPTION_PID" 2>/dev/null; do
+                # Check for completion first
                 if tail -n 1 "$NETWORK_VOLUME/logs/image_captioning.log" 2>/dev/null | grep -q "All done!"; then
                     break
                 fi
-                # Check for errors in log
-                if tail -n 10 "$NETWORK_VOLUME/logs/image_captioning.log" 2>/dev/null | grep -qi "error\|failed\|exception"; then
+                # Check for actual errors (more specific patterns to avoid false positives)
+                # Look for actual error patterns: [ERROR], Error:, Traceback, Exception:, or failed with exit code
+                if tail -n 20 "$NETWORK_VOLUME/logs/image_captioning.log" 2>/dev/null | grep -qiE "(^\[ERROR\]|^Error:|^Traceback|Exception:|failed with exit)"; then
                     print_error "Image captioning encountered errors. Check log: $NETWORK_VOLUME/logs/image_captioning.log"
                     exit 1
                 fi
@@ -519,11 +521,13 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             timeout_counter=0
             max_timeout=7200  # 2 hour timeout (videos take longer)
             while kill -0 "$VIDEO_CAPTION_PID" 2>/dev/null; do
+                # Check for completion first
                 if tail -n 1 "$NETWORK_VOLUME/logs/video_captioning.log" 2>/dev/null | grep -q "video captioning complete"; then
                     break
                 fi
-                # Check for errors in log
-                if tail -n 10 "$NETWORK_VOLUME/logs/video_captioning.log" 2>/dev/null | grep -qi "error\|failed\|exception"; then
+                # Check for actual errors (more specific patterns to avoid false positives)
+                # Look for actual error patterns: [ERROR], Error:, Traceback, Exception:, or failed with exit code
+                if tail -n 20 "$NETWORK_VOLUME/logs/video_captioning.log" 2>/dev/null | grep -qiE "(^\[ERROR\]|^Error:|^Traceback|Exception:|failed with exit)"; then
                     print_error "Video captioning encountered errors. Check log: $NETWORK_VOLUME/logs/video_captioning.log"
                     exit 1
                 fi
