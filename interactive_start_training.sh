@@ -471,7 +471,7 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             print_success "Image captioning started in background (PID: $IMAGE_CAPTION_PID)"
 
             # Wait for image captioning with progress indicator
-            print_info "Waiting for image captioning to complete..."
+            print_info "Waiting for image captioning to complete..., initial run can take 5-20 minutes."
             timeout_counter=0
             max_timeout=3600  # 1 hour timeout
             while kill -0 "$IMAGE_CAPTION_PID" 2>/dev/null; do
