@@ -319,7 +319,11 @@ case $MODEL_TYPE in
         # Check if file already exists in destination
         if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/flux.toml" ]; then
             print_info "flux.toml already exists in examples directory"
+            # Update output_dir even if file already exists
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/flux_lora'|" "$NETWORK_VOLUME/diffusion_pipe/examples/flux.toml"
         elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml" ]; then
+            # Update output_dir before moving
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/flux_lora'|" "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml"
             mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
             print_success "Moved flux.toml to examples directory"
         else
@@ -339,7 +343,11 @@ case $MODEL_TYPE in
         # Check if file already exists in destination
         if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/sdxl.toml" ]; then
             print_info "sdxl.toml already exists in examples directory"
+            # Update output_dir even if file already exists
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/sdxl_lora'|" "$NETWORK_VOLUME/diffusion_pipe/examples/sdxl.toml"
         elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml" ]; then
+            # Update output_dir before moving
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/sdxl_lora'|" "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml"
             mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
             print_success "Moved sdxl.toml to examples directory"
         else
@@ -358,7 +366,11 @@ case $MODEL_TYPE in
         # Check if file already exists in destination
         if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/wan13_video.toml" ]; then
             print_info "wan13_video.toml already exists in examples directory"
+            # Update output_dir even if file already exists
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/wan13_lora'|" "$NETWORK_VOLUME/diffusion_pipe/examples/wan13_video.toml"
         elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml" ]; then
+            # Update output_dir before moving
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/wan13_lora'|" "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml"
             mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
             print_success "Moved wan13_video.toml to examples directory"
         else
@@ -378,7 +390,11 @@ case $MODEL_TYPE in
         # Check if file already exists in destination
         if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/wan14b_t2v.toml" ]; then
             print_info "wan14b_t2v.toml already exists in examples directory"
+            # Update output_dir even if file already exists
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/wan14b_t2v_lora'|" "$NETWORK_VOLUME/diffusion_pipe/examples/wan14b_t2v.toml"
         elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml" ]; then
+            # Update output_dir before moving
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/wan14b_t2v_lora'|" "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml"
             mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
             print_success "Moved wan14b_t2v.toml to examples directory"
         else
@@ -398,7 +414,11 @@ case $MODEL_TYPE in
         # Check if file already exists in destination
         if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/wan14b_i2v.toml" ]; then
             print_info "wan14b_i2v.toml already exists in examples directory"
+            # Update output_dir even if file already exists
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/wan14b_i2v_lora'|" "$NETWORK_VOLUME/diffusion_pipe/examples/wan14b_i2v.toml"
         elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml" ]; then
+            # Update output_dir before moving
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/wan14b_i2v_lora'|" "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml"
             mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
             print_success "Moved wan14b_i2v.toml to examples directory"
         else
@@ -418,7 +438,11 @@ case $MODEL_TYPE in
         # Check if file already exists in destination
         if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/qwen_toml.toml" ]; then
             print_info "qwen_toml.toml already exists in examples directory"
+            # Update output_dir even if file already exists
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/qwen_lora'|" "$NETWORK_VOLUME/diffusion_pipe/examples/qwen_toml.toml"
         elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/qwen_toml.toml" ]; then
+            # Update output_dir before moving
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/qwen_lora'|" "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/qwen_toml.toml"
             mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/qwen_toml.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
             print_success "Moved qwen_toml.toml to examples directory"
         else
