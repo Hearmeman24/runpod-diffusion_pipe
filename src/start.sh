@@ -44,6 +44,16 @@ if [ -d "/tmp/runpod-diffusion_pipe" ]; then
 
     # Set up directory structure
     DIFF_PIPE_DIR="$NETWORK_VOLUME/diffusion_pipe"
+    
+    # Pull latest changes from diffusion_pipe repository
+    if [ -d "$DIFF_PIPE_DIR" ] && [ -d "$DIFF_PIPE_DIR/.git" ]; then
+        echo "Pulling latest changes from diffusion_pipe repository..."
+        cd "$DIFF_PIPE_DIR" || exit 1
+        git pull || echo "Warning: Failed to pull latest changes from diffusion_pipe repository"
+        cd "$NETWORK_VOLUME" || exit 1
+    else
+        echo "Warning: diffusion_pipe directory not found or not a git repository. Skipping git pull."
+    fi
 
 
     echo "Updating TOML file paths..."
@@ -113,6 +123,12 @@ fi
 echo "Installing torch 2.7.1"
 pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu128
 
+echo "Upgrading peft package..."
+pip install --upgrade "peft>=0.17.0"
+
+echo "Updating diffusers package..."
+pip uninstall -y diffusers
+pip install git+https://github.com/huggingface/diffusers
 
 echo "================================================"
 echo "✅ Jupyter Lab is running and accessible via the web interface"
