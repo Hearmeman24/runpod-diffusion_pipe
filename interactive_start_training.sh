@@ -313,9 +313,18 @@ case $MODEL_TYPE in
         fi
 
         print_info "HUGGING_FACE_TOKEN is set."
-        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml" ]; then
+        # Ensure examples directory exists
+        mkdir -p "$NETWORK_VOLUME/diffusion_pipe/examples"
+        
+        # Check if file already exists in destination
+        if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/flux.toml" ]; then
+            print_info "flux.toml already exists in examples directory"
+        elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml" ]; then
             mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
             print_success "Moved flux.toml to examples directory"
+        else
+            print_warning "flux.toml not found at expected location: $NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/flux.toml"
+            print_warning "Please ensure the file exists or manually copy it to: $NETWORK_VOLUME/diffusion_pipe/examples/flux.toml"
         fi
         print_info "Starting Flux model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/flux"
@@ -324,9 +333,18 @@ case $MODEL_TYPE in
         ;;
 
     "sdxl")
-        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml" ]; then
+        # Ensure examples directory exists
+        mkdir -p "$NETWORK_VOLUME/diffusion_pipe/examples"
+        
+        # Check if file already exists in destination
+        if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/sdxl.toml" ]; then
+            print_info "sdxl.toml already exists in examples directory"
+        elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml" ]; then
             mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
             print_success "Moved sdxl.toml to examples directory"
+        else
+            print_warning "sdxl.toml not found at expected location: $NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/sdxl.toml"
+            print_warning "Please ensure the file exists or manually copy it to: $NETWORK_VOLUME/diffusion_pipe/examples/sdxl.toml"
         fi
         print_info "Starting Base SDXL model download in background..."
         hf download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
@@ -334,9 +352,18 @@ case $MODEL_TYPE in
         ;;
 
     "wan13")
-        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml" ]; then
+        # Ensure examples directory exists
+        mkdir -p "$NETWORK_VOLUME/diffusion_pipe/examples"
+        
+        # Check if file already exists in destination
+        if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/wan13_video.toml" ]; then
+            print_info "wan13_video.toml already exists in examples directory"
+        elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml" ]; then
             mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
             print_success "Moved wan13_video.toml to examples directory"
+        else
+            print_warning "wan13_video.toml not found at expected location: $NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan13_video.toml"
+            print_warning "Please ensure the file exists or manually copy it to: $NETWORK_VOLUME/diffusion_pipe/examples/wan13_video.toml"
         fi
         print_info "Starting Wan 1.3B model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B"
@@ -345,9 +372,18 @@ case $MODEL_TYPE in
         ;;
 
     "wan14b_t2v")
-        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml" ]; then
+        # Ensure examples directory exists
+        mkdir -p "$NETWORK_VOLUME/diffusion_pipe/examples"
+        
+        # Check if file already exists in destination
+        if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/wan14b_t2v.toml" ]; then
+            print_info "wan14b_t2v.toml already exists in examples directory"
+        elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml" ]; then
             mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
             print_success "Moved wan14b_t2v.toml to examples directory"
+        else
+            print_warning "wan14b_t2v.toml not found at expected location: $NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_t2v.toml"
+            print_warning "Please ensure the file exists or manually copy it to: $NETWORK_VOLUME/diffusion_pipe/examples/wan14b_t2v.toml"
         fi
         print_info "Starting Wan 14B T2V model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B"
@@ -356,9 +392,18 @@ case $MODEL_TYPE in
         ;;
 
     "wan14b_i2v")
-        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml" ]; then
+        # Ensure examples directory exists
+        mkdir -p "$NETWORK_VOLUME/diffusion_pipe/examples"
+        
+        # Check if file already exists in destination
+        if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/wan14b_i2v.toml" ]; then
+            print_info "wan14b_i2v.toml already exists in examples directory"
+        elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml" ]; then
             mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
             print_success "Moved wan14b_i2v.toml to examples directory"
+        else
+            print_warning "wan14b_i2v.toml not found at expected location: $NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/wan14b_i2v.toml"
+            print_warning "Please ensure the file exists or manually copy it to: $NETWORK_VOLUME/diffusion_pipe/examples/wan14b_i2v.toml"
         fi
         print_info "Starting Wan 14B I2V model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P"
@@ -367,9 +412,18 @@ case $MODEL_TYPE in
         ;;
 
     "qwen")
-        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/qwen_toml.toml" ]; then
+        # Ensure examples directory exists
+        mkdir -p "$NETWORK_VOLUME/diffusion_pipe/examples"
+        
+        # Check if file already exists in destination
+        if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/qwen_toml.toml" ]; then
+            print_info "qwen_toml.toml already exists in examples directory"
+        elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/qwen_toml.toml" ]; then
             mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/qwen_toml.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
             print_success "Moved qwen_toml.toml to examples directory"
+        else
+            print_warning "qwen_toml.toml not found at expected location: $NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/qwen_toml.toml"
+            print_warning "Please ensure the file exists or manually copy it to: $NETWORK_VOLUME/diffusion_pipe/examples/qwen_toml.toml"
         fi
         print_info "Starting Qwen Image model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Qwen-Image"
@@ -504,6 +558,9 @@ if [ -n "$MODEL_DOWNLOAD_PID" ]; then
     print_header "Finalizing Model Download"
     echo ""
     print_info "Waiting for model download to complete..."
+    print_info "To view model download progress, open a new terminal window and paste:"
+    echo "  tail -f $NETWORK_VOLUME/logs/model_download.log"
+    echo ""
     timeout_counter=0
     max_timeout=10800  # 3 hour timeout for large models
     while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
@@ -914,6 +971,17 @@ cd "$NETWORK_VOLUME/diffusion_pipe"
 print_info "Starting LoRA training with $MODEL_NAME..."
 print_info "Using configuration: examples/$TOML_FILE"
 echo ""
+
+# Add special warning for Qwen Image model initialization
+if [ "$MODEL_TYPE" = "qwen" ]; then
+    print_warning "⚠️  IMPORTANT: Qwen Image model initialization can take several minutes."
+    print_warning "⚠️  The script may appear to hang during initialization - this is NORMAL."
+    print_warning "⚠️  As long as the script doesn't exit with an error, let it run."
+    echo ""
+    print_info "Waiting 10 seconds for you to read this message..."
+    sleep 10
+    echo ""
+fi
 
 print_warning "Training is starting. This may take several hours depending on your dataset size and model."
 print_info "You can monitor progress in the console output below."
