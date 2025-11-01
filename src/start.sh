@@ -123,6 +123,9 @@ fi
 echo "Installing torch 2.7.1"
 pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu128
 
+echo "Installing huggingface-cli..."
+pip install --upgrade "huggingface_hub[cli]"
+
 echo "Upgrading peft package..."
 pip install --upgrade "peft>=0.17.0"
 
