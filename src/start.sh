@@ -35,6 +35,11 @@ if [ -d "/tmp/runpod-diffusion_pipe" ]; then
     mv /tmp/runpod-diffusion_pipe "$NETWORK_VOLUME/"
     mv "$NETWORK_VOLUME/runpod-diffusion_pipe/Captioning" "$NETWORK_VOLUME/"
     mv "$NETWORK_VOLUME/runpod-diffusion_pipe/wan2.2_lora_training" "$NETWORK_VOLUME/"
+    
+    # Only move Qwen folder if IS_DEV is set to true
+    if [ "$IS_DEV" == "true" ]; then
+        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/qwen_image_musubi_training" "$NETWORK_VOLUME/" 2>/dev/null || true
+    fi
 
 
     # Move diffusion_pipe if it exists in root to working directory
