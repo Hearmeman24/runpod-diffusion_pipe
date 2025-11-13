@@ -51,6 +51,41 @@ class JoyCaptionManager:
         with self.lock:
             if self.model is None:
                 logger.info("Loading JoyCaption model...")
+                
+                # CUDA compatibility check
+                if self.device == "cuda":
+                    try:
+                        # Try a simple CUDA operation to test kernel compatibility
+                        test_tensor = torch.randn(1, device='cuda')
+                        _ = test_tensor * 2
+                        logger.info("CUDA compatibility check passed")
+                    except RuntimeError as e:
+                        error_msg = str(e).lower()
+                        if "no kernel image" in error_msg or "cuda error" in error_msg:
+                            error_message = """
+======================================================================
+CUDA KERNEL COMPATIBILITY ERROR
+======================================================================
+
+This error occurs when your GPU architecture is not supported
+by the installed CUDA kernels. This typically happens when:
+  • Your GPU model is older or different from what was expected
+  • The PyTorch/CUDA build doesn't include kernels for your GPU
+
+SOLUTIONS:
+  1. Use a newer GPU model (recommended):
+     • H100 or H200 GPUs are recommended for best compatibility
+  2. Ensure correct CUDA version:
+     • Filter for CUDA 12.6 when selecting your GPU on RunPod
+     • This template requires CUDA 12.6
+
+======================================================================
+"""
+                            logger.error(error_message)
+                            raise RuntimeError("CUDA kernel compatibility error detected. Please use a compatible GPU.")
+                        else:
+                            raise
+                
                 try:
                     from transformers import AutoProcessor, LlavaForConditionalGeneration
 

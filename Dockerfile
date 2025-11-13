@@ -1,5 +1,5 @@
 # Use CUDA base image
-FROM nvidia/cuda:12.6.3-cudnn-devel-ubuntu22.04 AS base
+FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu22.04 AS base
 
 # Consolidated environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir gdown jupyterlab jupyterlab-lsp \
 FROM base AS final
 
 # Clone the repository in the final stage
-RUN pip install torch
+RUN pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
 RUN git clone --recurse-submodules https://github.com/tdrussell/diffusion-pipe /diffusion_pipe
 RUN pip install -r /diffusion_pipe/requirements.txt
 
