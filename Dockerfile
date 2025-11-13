@@ -27,7 +27,9 @@ FROM base AS final
 # Clone the repository in the final stage
 RUN pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
 RUN git clone --recurse-submodules https://github.com/tdrussell/diffusion-pipe /diffusion_pipe
-RUN pip install -r /diffusion_pipe/requirements.txt
+# Install requirements but exclude flash-attn to avoid build issues
+RUN grep -v -i "flash-attn\|flash-attention" /diffusion_pipe/requirements.txt > /tmp/requirements_no_flash.txt && \
+    pip install -r /tmp/requirements_no_flash.txt
 
 
 COPY src/start_script.sh /start_script.sh
