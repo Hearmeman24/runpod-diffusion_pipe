@@ -125,6 +125,9 @@ if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/dataset.toml" ]; then
     sed -i "s|path = '/home/anon/data/images/grayscale'|path = '$NETWORK_VOLUME/image_dataset_here'|" "$NETWORK_VOLUME/diffusion_pipe/examples/dataset.toml"
 fi
 
+echo "Installing torch 2.7.1"
+pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+
 echo "Upgrading transformers package..."
 pip install transformers -U
 
