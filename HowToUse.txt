@@ -32,6 +32,7 @@ Model Selection:
 - Flux models
 - SDXL models  
 - Wan models
+- Qwen Image model
 
 API Key Configuration:
 - Hugging Face API key (required for Flux models)

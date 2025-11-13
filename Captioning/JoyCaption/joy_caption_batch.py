@@ -35,13 +35,26 @@ class JoyCaptionManager:
     def __init__(self, timeout_minutes: int = 5):
         self.model = None
         self.processor = None
-        # Proper device detection: CUDA > MPS > CPU
-        if torch.cuda.is_available():
-            self.device = "cuda"
-        elif torch.backends.mps.is_available():
-            self.device = "mps"
-        else:
-            self.device = "cpu"
+        # Check CUDA availability - this script requires CUDA
+        if not torch.cuda.is_available():
+            error_message = """
+======================================================================
+CUDA NOT AVAILABLE
+======================================================================
+
+CUDA is not available on this system.
+This script requires CUDA to run.
+
+SOLUTION:
+  Please deploy with CUDA 12.8 when selecting your GPU on RunPod
+  This template requires CUDA 12.8
+
+======================================================================
+"""
+            logger.error(error_message)
+            raise RuntimeError("CUDA is not available. Please deploy with CUDA 12.8.")
+        
+        self.device = "cuda"
         self.timeout = timeout_minutes * 60
         self.timer: Optional[threading.Timer] = None
         self.lock = threading.Lock()
@@ -76,8 +89,8 @@ SOLUTIONS:
   1. Use a newer GPU model (recommended):
      • H100 or H200 GPUs are recommended for best compatibility
   2. Ensure correct CUDA version:
-     • Filter for CUDA 12.6 when selecting your GPU on RunPod
-     • This template requires CUDA 12.6
+     • Filter for CUDA 12.8 when selecting your GPU on RunPod
+     • This template requires CUDA 12.8
 
 ======================================================================
 """

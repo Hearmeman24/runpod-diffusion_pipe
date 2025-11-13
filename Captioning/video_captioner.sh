@@ -88,8 +88,16 @@ try:
         y = x * 2
         print("CUDA compatibility check passed")
     else:
-        print("CUDA not available")
-        sys.exit(0)
+        print("\n" + "="*70)
+        print("CUDA NOT AVAILABLE")
+        print("="*70)
+        print("\nCUDA is not available on this system.")
+        print("This script requires CUDA to run.")
+        print("\nSOLUTION:")
+        print("  Please deploy with CUDA 12.8 when selecting your GPU on RunPod")
+        print("  This template requires CUDA 12.8")
+        print("\n" + "="*70)
+        sys.exit(1)
 except RuntimeError as e:
     error_msg = str(e).lower()
     if "no kernel image" in error_msg or "cuda error" in error_msg:
@@ -104,8 +112,8 @@ except RuntimeError as e:
         print("  1. Use a newer GPU model (recommended):")
         print("     • H100 or H200 GPUs are recommended for best compatibility")
         print("  2. Ensure correct CUDA version:")
-        print("     • Filter for CUDA 12.6 when selecting your GPU on RunPod")
-        print("     • This template requires CUDA 12.6")
+        print("     • Filter for CUDA 12.8 when selecting your GPU on RunPod")
+        print("     • This template requires CUDA 12.8")
         print("\n" + "="*70)
         sys.exit(1)
     else:
