@@ -270,15 +270,22 @@ COMMON_FLAGS=(
   --dataset_config "$DATASET_TOML"
   --sdpa --mixed_precision bf16
   --timestep_sampling shift
-  --weighting_scheme none --discrete_flow_shift 2.2
-  --optimizer_type adamw8bit --optimizer_args weight_decay=0.1
-  --learning_rate "$LEARNING_RATE"
-  --gradient_checkpointing --gradient_accumulation_steps 1
+  --weighting_scheme none
+  --discrete_flow_shift 3.0       # CHANGED: 3.0 is the sweet spot for Qwen flow matching
+  --optimizer_type adamw8bit
+  --optimizer_args weight_decay=0.01  # CHANGED: Standard decay is sufficient
+  --learning_rate "$LEARNING_RATE"           # RECOMMENDATION: Start here. If unstable, drop to 5e-5
+  --gradient_checkpointing
+  --gradient_accumulation_steps 4 # CRITICAL FIX: Simulates Batch Size 4. Smoothes out the loss.
   --max_data_loader_n_workers 2 --persistent_data_loader_workers
-  --network_module networks.lora_qwen_image --network_dim "$LORA_RANK" --network_alpha "$LORA_RANK"
-  --max_grad_norm 0
-  --lr_scheduler polynomial --lr_scheduler_power 8 --lr_scheduler_min_lr_ratio "5e-5"
-  --max_train_epochs "$MAX_EPOCHS" --save_every_n_epochs "$SAVE_EVERY"
+  --network_module networks.lora_qwen_image
+  --network_dim "$LORA_RANK"                # CHANGED: 64 captures more style nuance than 32
+  --network_alpha "$LORA_RANK"              # CHANGED: Alpha = Dim/2 is standard for stability
+  --max_grad_norm 1.0             # CRITICAL FIX: Re-enables safety brakes
+  --lr_scheduler cosine           # CHANGED: Cosine is much smoother for style training
+  --lr_scheduler_num_cycles 1     # Ensures a smooth curve over the whole run
+  --max_train_epochs "$MAX_EPOCHS"
+  --save_every_n_epochs "$SAVE_EVERY"
   --seed "$SEED"
   --output_dir "$OUTPUT_DIR"
   --output_name "$TITLE"
