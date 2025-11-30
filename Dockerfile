@@ -20,7 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Python packages
 RUN pip install --no-cache-dir gdown jupyterlab jupyterlab-lsp \
     jupyter-server jupyter-server-terminals \
-    ipykernel jupyterlab_code_formatter huggingface_hub[cli]
+    ipykernel jupyterlab_code_formatter huggingface_hub[cli] \
+    ninja packaging
 
 # Create the final image
 FROM base AS final

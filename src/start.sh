@@ -83,6 +83,16 @@ detect_cuda_arch() {
 echo "Installing flash-attn in background..."
 mkdir -p "$NETWORK_VOLUME/logs"
 
+# Ensure ninja and packaging are installed (critical for fast builds)
+# Without ninja: 2+ hours, with ninja: 3-5 minutes
+echo "Ensuring ninja build system is installed..."
+pip install ninja packaging -q
+# Verify ninja works (exit code 0)
+if ! ninja --version > /dev/null 2>&1; then
+    echo "Warning: ninja not working, reinstalling..."
+    pip uninstall -y ninja && pip install ninja
+fi
+
 # Detect GPU and set optimal CUDA architecture
 DETECTED_GPU=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -n1 | xargs)
 CUDA_ARCH=$(detect_cuda_arch)
@@ -91,8 +101,28 @@ echo "Using CUDA architecture: $CUDA_ARCH"
 
 # Set parallel build options and architecture
 export TORCH_CUDA_ARCH_LIST="$CUDA_ARCH"
-export MAX_JOBS=8
+
+# Dynamically calculate MAX_JOBS based on available resources
+# CPU-based: leave 2 cores for system
+CPU_CORES=$(nproc)
+CPU_JOBS=$(( CPU_CORES - 2 ))
+[ "$CPU_JOBS" -lt 4 ] && CPU_JOBS=4
+
+# RAM-based: ~3GB per compilation job, use available memory
+AVAILABLE_RAM_GB=$(free -g | awk '/^Mem:/{print $7}')
+RAM_JOBS=$(( AVAILABLE_RAM_GB / 3 ))
+[ "$RAM_JOBS" -lt 4 ] && RAM_JOBS=4
+
+# Use the smaller of the two to avoid OOM
+if [ "$CPU_JOBS" -lt "$RAM_JOBS" ]; then
+    OPTIMAL_JOBS=$CPU_JOBS
+else
+    OPTIMAL_JOBS=$RAM_JOBS
+fi
+
+export MAX_JOBS=$OPTIMAL_JOBS
 export NVCC_THREADS=4
+echo "Parallel build: MAX_JOBS=$MAX_JOBS (CPU cores: $CPU_CORES, Available RAM: ${AVAILABLE_RAM_GB}GB)"
 
 pip install flash-attn --no-build-isolation > "$NETWORK_VOLUME/logs/flash_attn_install.log" 2>&1 &
 FLASH_ATTN_PID=$!
