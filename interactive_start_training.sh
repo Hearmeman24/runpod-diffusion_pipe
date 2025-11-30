@@ -43,6 +43,32 @@ echo -e "${PURPLE}This interactive script will guide you through setting up and 
 echo -e "${RED}Before you start, make sure to add your datasets to their respective folders.${NC}"
 echo ""
 
+# Check for Blackwell GPU and warn user
+if [ -f /tmp/gpu_arch_type ]; then
+    GPU_ARCH_TYPE=$(cat /tmp/gpu_arch_type)
+    DETECTED_GPU=$(cat /tmp/detected_gpu 2>/dev/null || echo "Unknown")
+    if [ "$GPU_ARCH_TYPE" = "blackwell" ]; then
+        echo -e "${BOLD}${RED}════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${BOLD}${RED}⚠️  WARNING: BLACKWELL GPU DETECTED ⚠️${NC}"
+        echo -e "${BOLD}${RED}════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${BOLD}${RED}Detected GPU: $DETECTED_GPU${NC}"
+        echo -e "${BOLD}${RED}${NC}"
+        echo -e "${BOLD}${RED}Blackwell GPUs (B100, B200, RTX 5090, etc.) are very new and${NC}"
+        echo -e "${BOLD}${RED}may not be fully supported by all ML libraries yet.${NC}"
+        echo -e "${BOLD}${RED}${NC}"
+        echo -e "${BOLD}${RED}For best compatibility, use H100 or H200 GPUs.${NC}"
+        echo -e "${BOLD}${RED}════════════════════════════════════════════════════════════════${NC}"
+        echo ""
+        echo -n "Continuing in "
+        for i in 10 9 8 7 6 5 4 3 2 1; do
+            echo -n "$i.."
+            sleep 1
+        done
+        echo ""
+        echo ""
+    fi
+fi
+
 # Create logs directory
 mkdir -p "$NETWORK_VOLUME/logs"
 

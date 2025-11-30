@@ -21,6 +21,39 @@ if [ "${GPU_COUNT}" -lt 1 ]; then
 fi
 
 ########################################
+# Blackwell GPU warning
+########################################
+RED='\033[0;31m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+if [ -f /tmp/gpu_arch_type ]; then
+    GPU_ARCH_TYPE=$(cat /tmp/gpu_arch_type)
+    DETECTED_GPU=$(cat /tmp/detected_gpu 2>/dev/null || echo "Unknown")
+    if [ "$GPU_ARCH_TYPE" = "blackwell" ]; then
+        echo ""
+        echo -e "${BOLD}${RED}════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${BOLD}${RED}⚠️  WARNING: BLACKWELL GPU DETECTED ⚠️${NC}"
+        echo -e "${BOLD}${RED}════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${BOLD}${RED}Detected GPU: $DETECTED_GPU${NC}"
+        echo -e "${BOLD}${RED}${NC}"
+        echo -e "${BOLD}${RED}Blackwell GPUs (B100, B200, RTX 5090, etc.) are very new and${NC}"
+        echo -e "${BOLD}${RED}may not be fully supported by all ML libraries yet.${NC}"
+        echo -e "${BOLD}${RED}${NC}"
+        echo -e "${BOLD}${RED}For best compatibility, use H100 or H200 GPUs.${NC}"
+        echo -e "${BOLD}${RED}════════════════════════════════════════════════════════════════${NC}"
+        echo ""
+        echo -n "Continuing in "
+        for i in 10 9 8 7 6 5 4 3 2 1; do
+            echo -n "$i.."
+            sleep 1
+        done
+        echo ""
+        echo ""
+    fi
+fi
+
+########################################
 # CUDA compatibility check
 ########################################
 check_cuda_compatibility() {

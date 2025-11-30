@@ -22,9 +22,78 @@ echo "cd $NETWORK_VOLUME" >> /root/.bashrc
 #git pull || true
 #cd "$NETWORK_VOLUME" || exit 1
 
+# GPU detection for optimized flash-attn build
+detect_cuda_arch() {
+    local gpu_name
+    gpu_name=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -n1 | xargs)
+    
+    # Save GPU name for other scripts to check
+    echo "$gpu_name" > /tmp/detected_gpu
+    
+    case "$gpu_name" in
+        # Blackwell Data Center (sm_100)
+        *B100*|*B200*|*GB200*)
+            echo "blackwell" > /tmp/gpu_arch_type
+            echo "10.0"
+            ;;
+        # Blackwell Consumer/Pro (sm_120)
+        *5090*|*5080*|*5070*|*5060*|*PRO*6000*Blackwell*)
+            echo "blackwell" > /tmp/gpu_arch_type
+            echo "12.0"
+            ;;
+        # Hopper (sm_90)
+        *H100*|*H200*)
+            echo "hopper" > /tmp/gpu_arch_type
+            echo "9.0"
+            ;;
+        # Ada Lovelace (sm_89)
+        *L4*|*L40*|*4090*|*4080*|*4070*|*4060*|*PRO*6000*Ada*)
+            echo "ada" > /tmp/gpu_arch_type
+            echo "8.9"
+            ;;
+        # Ampere (sm_86)
+        *A10*|*A40*|*A6000*|*A5000*|*A4000*|*3090*|*3080*|*3070*|*3060*)
+            echo "ampere" > /tmp/gpu_arch_type
+            echo "8.6"
+            ;;
+        # Ampere Data Center (sm_80)
+        *A100*)
+            echo "ampere" > /tmp/gpu_arch_type
+            echo "8.0"
+            ;;
+        # Turing (sm_75)
+        *T4*|*2080*|*2070*|*2060*)
+            echo "turing" > /tmp/gpu_arch_type
+            echo "7.5"
+            ;;
+        # Volta (sm_70)
+        *V100*)
+            echo "volta" > /tmp/gpu_arch_type
+            echo "7.0"
+            ;;
+        # Default: build for common modern architectures
+        *)
+            echo "unknown" > /tmp/gpu_arch_type
+            echo "8.0;8.6;8.9;9.0"
+            ;;
+    esac
+}
+
 # Install flash-attn in background (requires compilation, can take several minutes)
 echo "Installing flash-attn in background..."
 mkdir -p "$NETWORK_VOLUME/logs"
+
+# Detect GPU and set optimal CUDA architecture
+DETECTED_GPU=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -n1 | xargs)
+CUDA_ARCH=$(detect_cuda_arch)
+echo "Detected GPU: $DETECTED_GPU"
+echo "Using CUDA architecture: $CUDA_ARCH"
+
+# Set parallel build options and architecture
+export TORCH_CUDA_ARCH_LIST="$CUDA_ARCH"
+export MAX_JOBS=8
+export NVCC_THREADS=4
+
 pip install flash-attn --no-build-isolation > "$NETWORK_VOLUME/logs/flash_attn_install.log" 2>&1 &
 FLASH_ATTN_PID=$!
 echo "$FLASH_ATTN_PID" > /tmp/flash_attn_pid
