@@ -23,6 +23,7 @@ echo "cd $NETWORK_VOLUME" >> /root/.bashrc
 #cd "$NETWORK_VOLUME" || exit 1
 
 # GPU detection for optimized flash-attn build
+# Returns architecture in FLASH_ATTN_CUDA_ARCHS format (e.g., "90" for sm_90)
 detect_cuda_arch() {
     local gpu_name
     gpu_name=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -n1 | xargs)
@@ -34,64 +35,55 @@ detect_cuda_arch() {
         # Blackwell Data Center (sm_100)
         *B100*|*B200*|*GB200*)
             echo "blackwell" > /tmp/gpu_arch_type
-            echo "10.0"
+            echo "100"
             ;;
         # Blackwell Consumer/Pro (sm_120)
         *5090*|*5080*|*5070*|*5060*|*PRO*6000*Blackwell*)
             echo "blackwell" > /tmp/gpu_arch_type
-            echo "12.0"
+            echo "120"
             ;;
         # Hopper (sm_90)
         *H100*|*H200*)
             echo "hopper" > /tmp/gpu_arch_type
-            echo "9.0"
+            echo "90"
             ;;
         # Ada Lovelace (sm_89)
         *L4*|*L40*|*4090*|*4080*|*4070*|*4060*|*PRO*6000*Ada*)
             echo "ada" > /tmp/gpu_arch_type
-            echo "8.9"
+            echo "89"
             ;;
         # Ampere (sm_86)
         *A10*|*A40*|*A6000*|*A5000*|*A4000*|*3090*|*3080*|*3070*|*3060*)
             echo "ampere" > /tmp/gpu_arch_type
-            echo "8.6"
+            echo "86"
             ;;
         # Ampere Data Center (sm_80)
         *A100*)
             echo "ampere" > /tmp/gpu_arch_type
-            echo "8.0"
+            echo "80"
             ;;
         # Turing (sm_75)
         *T4*|*2080*|*2070*|*2060*)
             echo "turing" > /tmp/gpu_arch_type
-            echo "7.5"
+            echo "75"
             ;;
         # Volta (sm_70)
         *V100*)
             echo "volta" > /tmp/gpu_arch_type
-            echo "7.0"
+            echo "70"
             ;;
         # Default: build for common modern architectures
         *)
             echo "unknown" > /tmp/gpu_arch_type
-            echo "8.0;8.6;8.9;9.0"
+            echo "80;86;89;90"
             ;;
     esac
 }
 
-# Install flash-attn in background (requires compilation, can take several minutes)
+# Install flash-attn in background
+# Strategy: Try prebuilt wheel first (fast), fall back to building from source if needed
 echo "Installing flash-attn in background..."
 mkdir -p "$NETWORK_VOLUME/logs"
-
-# Ensure ninja and packaging are installed (critical for fast builds)
-# Without ninja: 2+ hours, with ninja: 3-5 minutes
-echo "Ensuring ninja build system is installed..."
-pip install ninja packaging -q
-# Verify ninja works (exit code 0)
-if ! ninja --version > /dev/null 2>&1; then
-    echo "Warning: ninja not working, reinstalling..."
-    pip uninstall -y ninja && pip install ninja
-fi
 
 # Detect GPU and set optimal CUDA architecture
 DETECTED_GPU=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -n1 | xargs)
@@ -99,59 +91,111 @@ CUDA_ARCH=$(detect_cuda_arch)
 echo "Detected GPU: $DETECTED_GPU"
 echo "Using CUDA architecture: $CUDA_ARCH"
 
-# Dynamically calculate MAX_JOBS based on available resources
-# CPU-based: leave 2 cores for system
+# Dynamically calculate MAX_JOBS for fallback build
 CPU_CORES=$(nproc)
 CPU_JOBS=$(( CPU_CORES - 2 ))
 [ "$CPU_JOBS" -lt 4 ] && CPU_JOBS=4
-
-# RAM-based: ~3GB per compilation job, use available memory
 AVAILABLE_RAM_GB=$(free -g | awk '/^Mem:/{print $7}')
 RAM_JOBS=$(( AVAILABLE_RAM_GB / 3 ))
 [ "$RAM_JOBS" -lt 4 ] && RAM_JOBS=4
-
-# Use the smaller of the two to avoid OOM
 if [ "$CPU_JOBS" -lt "$RAM_JOBS" ]; then
     OPTIMAL_JOBS=$CPU_JOBS
 else
     OPTIMAL_JOBS=$RAM_JOBS
 fi
 
-echo "Parallel build: MAX_JOBS=$OPTIMAL_JOBS (CPU cores: $CPU_CORES, Available RAM: ${AVAILABLE_RAM_GB}GB)"
-
-# Build flash-attn from source for maximum control over compilation
-# Clone, build with optimizations, then clean up
+# Install flash-attn: try prebuilt wheel first, fall back to source build
 (
     set -e
+    
+    # Get Python and PyTorch versions for wheel selection
+    # Python: "310", "311", "312"
+    PY_VER=$(python -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
+    # PyTorch: "2.5", "2.6", "2.7", "2.8", "2.9"
+    TORCH_VER=$(python -c "import torch; print('.'.join(torch.__version__.split('.')[:2]))")
+    # CUDA: "124", "126", "128", "130"
+    CUDA_VER=$(python -c "import torch; v=torch.version.cuda; print(v.replace('.','')[:3] if v else '')")
+    
+    echo "System info for flash-attn installation:"
+    echo "  Python: $PY_VER (cp$PY_VER)"
+    echo "  PyTorch: $TORCH_VER"
+    echo "  CUDA: $CUDA_VER"
+    echo "  GPU: $DETECTED_GPU"
+    echo "  Architecture: sm_$CUDA_ARCH"
+    
+    # Try prebuilt wheel from mjun0812's repo
+    # https://github.com/mjun0812/flash-attention-prebuild-wheels/releases
+    # Wheel format: flash_attn-{version}+cu{cuda}torch{torch}-cp{py}-cp{py}-linux_x86_64.whl
+    
+    FLASH_ATTN_VERSION="2.7.4"  # Stable version with broad compatibility
+    WHEEL_BASE_URL="https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.5.4"
+    WHEEL_NAME="flash_attn-${FLASH_ATTN_VERSION}+cu${CUDA_VER}torch${TORCH_VER}-cp${PY_VER}-cp${PY_VER}-linux_x86_64.whl"
+    WHEEL_URL="${WHEEL_BASE_URL}/${WHEEL_NAME}"
+    
+    echo ""
+    echo "Attempting to download prebuilt flash-attn wheel..."
+    echo "  URL: $WHEEL_URL"
+    
+    WHEEL_INSTALLED=false
+    
+    # Download and install prebuilt wheel
     cd /tmp
+    if wget -q --spider "$WHEEL_URL" 2>/dev/null; then
+        echo "  Wheel found! Downloading..."
+        if wget -q -O "$WHEEL_NAME" "$WHEEL_URL"; then
+            echo "  Installing wheel..."
+            if pip install "$WHEEL_NAME" 2>&1; then
+                rm -f "$WHEEL_NAME"
+                echo "✅ Successfully installed flash-attn from prebuilt wheel!"
+                WHEEL_INSTALLED=true
+            else
+                echo "  Wheel installation failed."
+                rm -f "$WHEEL_NAME"
+            fi
+        fi
+    else
+        echo "  No prebuilt wheel available for this configuration."
+    fi
     
-    # Clean up any previous build
-    rm -rf flash-attention
-    
-    echo "Cloning flash-attention repository..."
-    git clone https://github.com/Dao-AILab/flash-attention.git
-    cd flash-attention
-    
-    # Set all build optimization environment variables
-    export TORCH_CUDA_ARCH_LIST="$CUDA_ARCH"
-    export MAX_JOBS=$OPTIMAL_JOBS
-    export NVCC_THREADS=4
-    
-    # Disable unused features to speed up compilation (keep backward for training)
-    export FLASH_ATTENTION_SKIP_CUDA_BUILD=FALSE
-    
-    echo "Building flash-attn with optimizations..."
-    echo "  TORCH_CUDA_ARCH_LIST=$TORCH_CUDA_ARCH_LIST"
-    echo "  MAX_JOBS=$MAX_JOBS"
-    echo "  NVCC_THREADS=$NVCC_THREADS"
-    
-    python setup.py install
-    
-    echo "flash-attn installation completed successfully!"
-    
-    # Clean up
-    cd /tmp
-    rm -rf flash-attention
+    # Fall back to building from source if wheel not installed
+    if [ "$WHEEL_INSTALLED" = false ]; then
+        echo ""
+        echo "⚠️  Building flash-attn from source..."
+        echo "   This may take 3-10 minutes depending on your system."
+        echo ""
+        
+        # Ensure ninja is installed for fast builds
+        pip install ninja packaging -q
+        if ! ninja --version > /dev/null 2>&1; then
+            pip uninstall -y ninja && pip install ninja
+        fi
+        
+        # Build from source
+        cd /tmp
+        rm -rf flash-attention
+        
+        echo "Cloning flash-attention repository..."
+        git clone https://github.com/Dao-AILab/flash-attention.git
+        cd flash-attention
+        
+        # Set build optimization environment variables
+        export FLASH_ATTN_CUDA_ARCHS="$CUDA_ARCH"
+        export MAX_JOBS=$OPTIMAL_JOBS
+        export NVCC_THREADS=4
+        
+        echo "Building with optimizations:"
+        echo "  FLASH_ATTN_CUDA_ARCHS=$FLASH_ATTN_CUDA_ARCHS"
+        echo "  MAX_JOBS=$MAX_JOBS"
+        echo "  NVCC_THREADS=$NVCC_THREADS"
+        
+        python setup.py install
+        
+        # Clean up
+        cd /tmp
+        rm -rf flash-attention
+        
+        echo "✅ Successfully built and installed flash-attn from source!"
+    fi
     
 ) > "$NETWORK_VOLUME/logs/flash_attn_install.log" 2>&1 &
 FLASH_ATTN_PID=$!
