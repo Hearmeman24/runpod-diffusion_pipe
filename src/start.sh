@@ -22,6 +22,15 @@ echo "cd $NETWORK_VOLUME" >> /root/.bashrc
 #git pull || true
 #cd "$NETWORK_VOLUME" || exit 1
 
+# Install flash-attn in background (requires compilation, can take several minutes)
+echo "Installing flash-attn in background..."
+mkdir -p "$NETWORK_VOLUME/logs"
+pip install flash-attn --no-build-isolation > "$NETWORK_VOLUME/logs/flash_attn_install.log" 2>&1 &
+FLASH_ATTN_PID=$!
+echo "$FLASH_ATTN_PID" > /tmp/flash_attn_pid
+echo "flash-attn installation started (PID: $FLASH_ATTN_PID)"
+echo "To monitor progress: tail -f $NETWORK_VOLUME/logs/flash_attn_install.log"
+
 # Start Jupyter Lab with the working folder as the root directory
 # This puts users directly in their working environment and hides system files
 jupyter-lab --ip=0.0.0.0 --allow-root --no-browser \

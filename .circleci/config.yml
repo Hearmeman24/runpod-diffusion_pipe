@@ -5,7 +5,7 @@ executors:
   docker-dind:
     machine:
       image: ubuntu-2404:current
-      docker_layer_caching: true
+      docker_layer_caching: false
     environment:
       DOCKER_BUILDKIT: 1
       COMPOSE_DOCKER_CLI_BUILD: 1
@@ -15,12 +15,6 @@ jobs:
     executor: docker-dind
     steps:
       - checkout
-
-      # Pull last build’s cache (ignore if it does not exist)
-      - run:
-          name: Pre-pull cache image
-          command: |
-            docker pull "docker.io/$DOCKERHUB_USER/diffusion-pipe:buildcache" || true
 
       - run:
           name: Log in to Docker Hub
