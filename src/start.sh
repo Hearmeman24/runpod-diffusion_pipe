@@ -99,9 +99,6 @@ CUDA_ARCH=$(detect_cuda_arch)
 echo "Detected GPU: $DETECTED_GPU"
 echo "Using CUDA architecture: $CUDA_ARCH"
 
-# Set parallel build options and architecture
-export TORCH_CUDA_ARCH_LIST="$CUDA_ARCH"
-
 # Dynamically calculate MAX_JOBS based on available resources
 # CPU-based: leave 2 cores for system
 CPU_CORES=$(nproc)
@@ -120,11 +117,43 @@ else
     OPTIMAL_JOBS=$RAM_JOBS
 fi
 
-export MAX_JOBS=$OPTIMAL_JOBS
-export NVCC_THREADS=4
-echo "Parallel build: MAX_JOBS=$MAX_JOBS (CPU cores: $CPU_CORES, Available RAM: ${AVAILABLE_RAM_GB}GB)"
+echo "Parallel build: MAX_JOBS=$OPTIMAL_JOBS (CPU cores: $CPU_CORES, Available RAM: ${AVAILABLE_RAM_GB}GB)"
 
-pip install flash-attn --no-build-isolation > "$NETWORK_VOLUME/logs/flash_attn_install.log" 2>&1 &
+# Build flash-attn from source for maximum control over compilation
+# Clone, build with optimizations, then clean up
+(
+    set -e
+    cd /tmp
+    
+    # Clean up any previous build
+    rm -rf flash-attention
+    
+    echo "Cloning flash-attention repository..."
+    git clone https://github.com/Dao-AILab/flash-attention.git
+    cd flash-attention
+    
+    # Set all build optimization environment variables
+    export TORCH_CUDA_ARCH_LIST="$CUDA_ARCH"
+    export MAX_JOBS=$OPTIMAL_JOBS
+    export NVCC_THREADS=4
+    
+    # Disable unused features to speed up compilation (keep backward for training)
+    export FLASH_ATTENTION_SKIP_CUDA_BUILD=FALSE
+    
+    echo "Building flash-attn with optimizations..."
+    echo "  TORCH_CUDA_ARCH_LIST=$TORCH_CUDA_ARCH_LIST"
+    echo "  MAX_JOBS=$MAX_JOBS"
+    echo "  NVCC_THREADS=$NVCC_THREADS"
+    
+    python setup.py install
+    
+    echo "flash-attn installation completed successfully!"
+    
+    # Clean up
+    cd /tmp
+    rm -rf flash-attention
+    
+) > "$NETWORK_VOLUME/logs/flash_attn_install.log" 2>&1 &
 FLASH_ATTN_PID=$!
 echo "$FLASH_ATTN_PID" > /tmp/flash_attn_pid
 echo "flash-attn installation started (PID: $FLASH_ATTN_PID)"
