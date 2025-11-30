@@ -1,5 +1,5 @@
 # Use CUDA base image
-FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu22.04 AS base
+FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu24.04 AS base
 
 # Consolidated environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -9,9 +9,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-   python3.10 python3-pip curl zip git git-lfs wget vim libgl1 libglib2.0-0 \
+   python3 python3-pip python3-venv curl zip git git-lfs wget vim libgl1 libglib2.0-0 \
    python3-dev build-essential gcc \
-   && ln -sf /usr/bin/python3.10 /usr/bin/python \
+   && ln -sf /usr/bin/python3 /usr/bin/python \
    && ln -sf /usr/bin/pip3 /usr/bin/pip \
    && apt-get clean \
    && rm -rf /var/lib/apt/lists/*
@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir gdown jupyterlab jupyterlab-lsp \
 FROM base AS final
 
 # Clone the repository in the final stage
-RUN pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128
+RUN pip install torch torchvision torchaudio
 RUN git clone --recurse-submodules https://github.com/tdrussell/diffusion-pipe /diffusion_pipe
 # Install requirements but exclude flash-attn to avoid build issues
 RUN grep -v -i "flash-attn\|flash-attention" /diffusion_pipe/requirements.txt > /tmp/requirements_no_flash.txt && \

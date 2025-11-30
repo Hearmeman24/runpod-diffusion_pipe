@@ -61,7 +61,7 @@ if [ -d "$CONDA_DIR/envs/$CONDA_ENV_NAME" ]; then
     conda activate $CONDA_ENV_NAME
 else
     echo "Creating conda environment: $CONDA_ENV_NAME"
-    conda create -y -n $CONDA_ENV_NAME python=3.10
+    conda create -y -n $CONDA_ENV_NAME python=3.12
 
     # Activate the environment
     source $CONDA_DIR/bin/activate $CONDA_ENV_NAME
