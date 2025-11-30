@@ -80,9 +80,9 @@ detect_cuda_arch() {
     esac
 }
 
-# Install flash-attn in background
-# Strategy: Try prebuilt wheel first (fast), fall back to building from source if needed
-echo "Installing flash-attn in background..."
+# Install flash-attn
+# Strategy: Try prebuilt wheel first (fast) in foreground, fall back to building from source in background if needed
+echo "Installing flash-attn..."
 mkdir -p "$NETWORK_VOLUME/logs"
 
 # Detect GPU and set optimal CUDA architecture
@@ -91,78 +91,76 @@ CUDA_ARCH=$(detect_cuda_arch)
 echo "Detected GPU: $DETECTED_GPU"
 echo "Using CUDA architecture: $CUDA_ARCH"
 
-# Dynamically calculate MAX_JOBS for fallback build
-CPU_CORES=$(nproc)
-CPU_JOBS=$(( CPU_CORES - 2 ))
-[ "$CPU_JOBS" -lt 4 ] && CPU_JOBS=4
-AVAILABLE_RAM_GB=$(free -g | awk '/^Mem:/{print $7}')
-RAM_JOBS=$(( AVAILABLE_RAM_GB / 3 ))
-[ "$RAM_JOBS" -lt 4 ] && RAM_JOBS=4
-if [ "$CPU_JOBS" -lt "$RAM_JOBS" ]; then
-    OPTIMAL_JOBS=$CPU_JOBS
-else
-    OPTIMAL_JOBS=$RAM_JOBS
-fi
+# Specify the exact prebuilt wheel URL here
+# Get wheels from: https://github.com/mjun0812/flash-attention-prebuild-wheels/releases
+# Format: flash_attn-{version}+cu{cuda}torch{torch}-cp{py}-cp{py}-linux_x86_64.whl
+FLASH_ATTN_WHEEL_URL="https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.5.4/flash_attn-2.8.3+cu128torch2.9-cp312-cp312-linux_x86_64.whl"
 
-# Install flash-attn: try prebuilt wheel first, fall back to source build
-(
-    set -e
-    
-    # Get Python and PyTorch versions for wheel selection
-    # Python: "310", "311", "312"
-    PY_VER=$(python -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
-    # PyTorch: "2.5", "2.6", "2.7", "2.8", "2.9"
-    TORCH_VER=$(python -c "import torch; print('.'.join(torch.__version__.split('.')[:2]))")
-    # CUDA: "124", "126", "128", "130"
-    CUDA_VER=$(python -c "import torch; v=torch.version.cuda; print(v.replace('.','')[:3] if v else '')")
-    
-    echo "System info for flash-attn installation:"
-    echo "  Python: $PY_VER (cp$PY_VER)"
-    echo "  PyTorch: $TORCH_VER"
-    echo "  CUDA: $CUDA_VER"
-    echo "  GPU: $DETECTED_GPU"
-    echo "  Architecture: sm_$CUDA_ARCH"
-    
-    # Try prebuilt wheel from mjun0812's repo
-    # https://github.com/mjun0812/flash-attention-prebuild-wheels/releases
-    # Wheel format: flash_attn-{version}+cu{cuda}torch{torch}-cp{py}-cp{py}-linux_x86_64.whl
-    
-    FLASH_ATTN_VERSION="2.7.4"  # Stable version with broad compatibility
-    WHEEL_BASE_URL="https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.5.4"
-    WHEEL_NAME="flash_attn-${FLASH_ATTN_VERSION}+cu${CUDA_VER}torch${TORCH_VER}-cp${PY_VER}-cp${PY_VER}-linux_x86_64.whl"
-    WHEEL_URL="${WHEEL_BASE_URL}/${WHEEL_NAME}"
-    
-    echo ""
+# If no wheel URL specified, leave empty to build from source
+# Example: FLASH_ATTN_WHEEL_URL="https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.5.4/flash_attn-2.7.4+cu128torch2.7-cp312-cp312-linux_x86_64.whl"
+
+WHEEL_INSTALLED=false
+
+# Try prebuilt wheel if URL is provided (in foreground)
+if [ -n "$FLASH_ATTN_WHEEL_URL" ]; then
     echo "Attempting to download prebuilt flash-attn wheel..."
-    echo "  URL: $WHEEL_URL"
+    echo "  URL: $FLASH_ATTN_WHEEL_URL"
     
-    WHEEL_INSTALLED=false
-    
-    # Download and install prebuilt wheel
     cd /tmp
-    if wget -q --spider "$WHEEL_URL" 2>/dev/null; then
-        echo "  Wheel found! Downloading..."
-        if wget -q -O "$WHEEL_NAME" "$WHEEL_URL"; then
-            echo "  Installing wheel..."
-            if pip install "$WHEEL_NAME" 2>&1; then
-                rm -f "$WHEEL_NAME"
-                echo "✅ Successfully installed flash-attn from prebuilt wheel!"
-                WHEEL_INSTALLED=true
-            else
-                echo "  Wheel installation failed."
-                rm -f "$WHEEL_NAME"
-            fi
+    WHEEL_NAME=$(basename "$FLASH_ATTN_WHEEL_URL")
+    
+    if wget -q -O "$WHEEL_NAME" "$FLASH_ATTN_WHEEL_URL" 2>&1; then
+        echo "  Wheel downloaded successfully!"
+        echo "  Installing wheel..."
+        if pip install "$WHEEL_NAME" 2>&1; then
+            rm -f "$WHEEL_NAME"
+            echo "✅ Successfully installed flash-attn from prebuilt wheel!"
+            WHEEL_INSTALLED=true
+            # Create marker file to indicate wheel was successfully installed
+            touch /tmp/flash_attn_wheel_success
+        else
+            echo "  Wheel installation failed, will build from source."
+            rm -f "$WHEEL_NAME"
         fi
     else
-        echo "  No prebuilt wheel available for this configuration."
+        echo "  Failed to download wheel, will build from source."
+    fi
+else
+    echo "No prebuilt wheel URL specified (FLASH_ATTN_WHEEL_URL is empty)."
+    echo "Will build flash-attn from source."
+fi
+
+# Fall back to building from source in background if wheel not installed
+if [ "$WHEEL_INSTALLED" = false ]; then
+    echo ""
+    echo "⚠️  Starting flash-attn build from source in background..."
+    echo "   This may take 3-10 minutes depending on your system."
+    echo ""
+    
+    # Dynamically calculate MAX_JOBS for fallback build
+    CPU_CORES=$(nproc)
+    CPU_JOBS=$(( CPU_CORES - 2 ))
+    [ "$CPU_JOBS" -lt 4 ] && CPU_JOBS=4
+    AVAILABLE_RAM_GB=$(free -g | awk '/^Mem:/{print $7}')
+    RAM_JOBS=$(( AVAILABLE_RAM_GB / 3 ))
+    [ "$RAM_JOBS" -lt 4 ] && RAM_JOBS=4
+    if [ "$CPU_JOBS" -lt "$RAM_JOBS" ]; then
+        OPTIMAL_JOBS=$CPU_JOBS
+    else
+        OPTIMAL_JOBS=$RAM_JOBS
     fi
     
-    # Fall back to building from source if wheel not installed
-    if [ "$WHEEL_INSTALLED" = false ]; then
-        echo ""
-        echo "⚠️  Building flash-attn from source..."
-        echo "   This may take 3-10 minutes depending on your system."
-        echo ""
+    # Build from source in background
+    (
+        set -e
+        
+        # Detect GPU for optimized build
+        DETECTED_GPU=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | head -n1 | xargs)
+        CUDA_ARCH=$(detect_cuda_arch)
+        
+        echo "Build configuration:"
+        echo "  GPU: $DETECTED_GPU"
+        echo "  CUDA Architecture: sm_$CUDA_ARCH"
         
         # Ensure ninja is installed for fast builds
         pip install ninja packaging -q
@@ -195,13 +193,13 @@ fi
         rm -rf flash-attention
         
         echo "✅ Successfully built and installed flash-attn from source!"
-    fi
-    
-) > "$NETWORK_VOLUME/logs/flash_attn_install.log" 2>&1 &
-FLASH_ATTN_PID=$!
-echo "$FLASH_ATTN_PID" > /tmp/flash_attn_pid
-echo "flash-attn installation started (PID: $FLASH_ATTN_PID)"
-echo "To monitor progress: tail -f $NETWORK_VOLUME/logs/flash_attn_install.log"
+        
+    ) > "$NETWORK_VOLUME/logs/flash_attn_install.log" 2>&1 &
+    FLASH_ATTN_PID=$!
+    echo "$FLASH_ATTN_PID" > /tmp/flash_attn_pid
+    echo "flash-attn build started in background (PID: $FLASH_ATTN_PID)"
+    echo "To monitor progress: tail -f $NETWORK_VOLUME/logs/flash_attn_install.log"
+fi
 
 # Start Jupyter Lab with the working folder as the root directory
 # This puts users directly in their working environment and hides system files

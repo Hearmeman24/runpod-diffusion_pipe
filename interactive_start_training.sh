@@ -73,11 +73,15 @@ fi
 mkdir -p "$NETWORK_VOLUME/logs"
 
 # Check if flash-attn installation is still running
-if [ -f /tmp/flash_attn_pid ]; then
+# Skip check if wheel was successfully installed in foreground
+if [ -f /tmp/flash_attn_wheel_success ]; then
+    print_success "flash-attn is installed and ready (installed from prebuilt wheel)."
+    echo ""
+elif [ -f /tmp/flash_attn_pid ]; then
     FLASH_ATTN_PID=$(cat /tmp/flash_attn_pid)
     if kill -0 "$FLASH_ATTN_PID" 2>/dev/null; then
-        print_warning "flash-attn is still being installed (PID: $FLASH_ATTN_PID)"
-        print_info "Waiting for flash-attn installation to complete..."
+        print_warning "flash-attn is still being compiled from source (PID: $FLASH_ATTN_PID)"
+        print_info "Waiting for flash-attn compilation to complete..."
         print_info "To monitor progress: tail -f $NETWORK_VOLUME/logs/flash_attn_install.log"
         echo ""
         while kill -0 "$FLASH_ATTN_PID" 2>/dev/null; do
@@ -88,9 +92,9 @@ if [ -f /tmp/flash_attn_pid ]; then
         # Check if installation succeeded
         wait "$FLASH_ATTN_PID" 2>/dev/null
         if [ $? -eq 0 ]; then
-            print_success "flash-attn installation completed successfully!"
+            print_success "flash-attn compilation completed successfully!"
         else
-            print_warning "flash-attn installation may have failed. Check log: $NETWORK_VOLUME/logs/flash_attn_install.log"
+            print_warning "flash-attn compilation may have failed. Check log: $NETWORK_VOLUME/logs/flash_attn_install.log"
         fi
         rm -f /tmp/flash_attn_pid
         echo ""
