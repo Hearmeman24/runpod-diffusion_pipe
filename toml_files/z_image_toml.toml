@@ -17,7 +17,7 @@ text_encoders = [
     {path = '/models/z_image/qwen_3_4b.safetensors', type = 'lumina2'}
 ]
 # Use if training Z-Image-Turbo
-merge_adapters = ['/models/z_image/zimage_turbo_training_adapter_v1.safetensors']
+merge_adapters = ['/models/z_image/zimage_turbo_training_adapter_v2.safetensors']
 dtype = 'bfloat16'
 
 

@@ -115,10 +115,11 @@ echo "3) Wan 1.3B"
 echo "4) Wan 14B Text-To-Video (Supports both T2V and I2V)"
 echo "5) Wan 14B Image-To-Video (Not recommended, for advanced users only)"
 echo "6) Qwen Image"
+echo "7) Z Image Turbo"
 echo ""
 
 while true; do
-    read -p "Enter your choice (1-6): " model_choice
+    read -p "Enter your choice (1-7): " model_choice
     case $model_choice in
         1)
             MODEL_TYPE="flux"
@@ -156,8 +157,14 @@ while true; do
             TOML_FILE="qwen_toml.toml"
             break
             ;;
+        7)
+            MODEL_TYPE="z_image_turbo"
+            MODEL_NAME="Z Image Turbo"
+            TOML_FILE="z_image_toml.toml"
+            break
+            ;;
         *)
-            print_error "Invalid choice. Please enter a number between 1-6."
+            print_error "Invalid choice. Please enter a number between 1-7."
             ;;
     esac
 done
@@ -566,6 +573,45 @@ case $MODEL_TYPE in
         hf download Qwen/Qwen-Image --local-dir "$NETWORK_VOLUME/models/Qwen-Image" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
+
+    "z_image_turbo")
+        # Ensure examples directory exists
+        mkdir -p "$NETWORK_VOLUME/diffusion_pipe/examples"
+        
+        # Check if file already exists in destination
+        if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/z_image_toml.toml" ]; then
+            print_info "z_image_toml.toml already exists in examples directory"
+            # Update output_dir even if file already exists
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/z_image_lora'|" "$NETWORK_VOLUME/diffusion_pipe/examples/z_image_toml.toml"
+        elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/z_image_toml.toml" ]; then
+            # Update output_dir before moving
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/z_image_lora'|" "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/z_image_toml.toml"
+            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/z_image_toml.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+            print_success "Moved z_image_toml.toml to examples directory"
+        else
+            print_warning "z_image_toml.toml not found at expected location: $NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/z_image_toml.toml"
+            print_warning "Please ensure the file exists or manually copy it to: $NETWORK_VOLUME/diffusion_pipe/examples/z_image_toml.toml"
+        fi
+        print_info "Starting Z Image Turbo model download in background..."
+        mkdir -p "$NETWORK_VOLUME/models/z_image"
+        # Download all 4 model files from HuggingFace
+        (
+            echo "Downloading Z Image Turbo diffusion model..."
+            wget -q --show-progress -O "$NETWORK_VOLUME/models/z_image/z_image_turbo_bf16.safetensors" \
+                "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors"
+            echo "Downloading Z Image Turbo VAE..."
+            wget -q --show-progress -O "$NETWORK_VOLUME/models/z_image/ae.safetensors" \
+                "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors"
+            echo "Downloading Z Image Turbo text encoder..."
+            wget -q --show-progress -O "$NETWORK_VOLUME/models/z_image/qwen_3_4b.safetensors" \
+                "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors"
+            echo "Downloading Z Image Turbo training adapter..."
+            wget -q --show-progress -O "$NETWORK_VOLUME/models/z_image/zimage_turbo_training_adapter_v2.safetensors" \
+                "https://huggingface.co/ostris/zimage_turbo_training_adapter/resolve/main/zimage_turbo_training_adapter_v2.safetensors"
+            echo "Z Image Turbo model download complete!"
+        ) > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        MODEL_DOWNLOAD_PID=$!
+        ;;
 esac
 
 echo ""
@@ -764,6 +810,26 @@ if [ -n "$MODEL_DOWNLOAD_PID" ]; then
         "qwen")
             if [ ! -d "$NETWORK_VOLUME/models/Qwen-Image" ] || [ -z "$(ls -A "$NETWORK_VOLUME/models/Qwen-Image" 2>/dev/null)" ]; then
                 print_error "Qwen Image model files not found after download. Check log: $NETWORK_VOLUME/logs/model_download.log"
+                exit 1
+            fi
+            ;;
+        "z_image_turbo")
+            missing_files=""
+            if [ ! -f "$NETWORK_VOLUME/models/z_image/z_image_turbo_bf16.safetensors" ]; then
+                missing_files="$missing_files z_image_turbo_bf16.safetensors"
+            fi
+            if [ ! -f "$NETWORK_VOLUME/models/z_image/ae.safetensors" ]; then
+                missing_files="$missing_files ae.safetensors"
+            fi
+            if [ ! -f "$NETWORK_VOLUME/models/z_image/qwen_3_4b.safetensors" ]; then
+                missing_files="$missing_files qwen_3_4b.safetensors"
+            fi
+            if [ ! -f "$NETWORK_VOLUME/models/z_image/zimage_turbo_training_adapter_v2.safetensors" ]; then
+                missing_files="$missing_files zimage_turbo_training_adapter_v2.safetensors"
+            fi
+            if [ -n "$missing_files" ]; then
+                print_error "Z Image Turbo model files missing after download:$missing_files"
+                print_error "Check log: $NETWORK_VOLUME/logs/model_download.log"
                 exit 1
             fi
             ;;
@@ -1124,6 +1190,17 @@ echo ""
 # Add special warning for Qwen Image model initialization
 if [ "$MODEL_TYPE" = "qwen" ]; then
     print_warning "⚠️  IMPORTANT: Qwen Image model initialization can take several minutes."
+    print_warning "⚠️  The script may appear to hang during initialization - this is NORMAL."
+    print_warning "⚠️  As long as the script doesn't exit with an error, let it run."
+    echo ""
+    print_info "Waiting 10 seconds for you to read this message..."
+    sleep 10
+    echo ""
+fi
+
+# Add special warning for Z Image Turbo model initialization
+if [ "$MODEL_TYPE" = "z_image_turbo" ]; then
+    print_warning "⚠️  IMPORTANT: Z Image Turbo model initialization can take several minutes."
     print_warning "⚠️  The script may appear to hang during initialization - this is NORMAL."
     print_warning "⚠️  As long as the script doesn't exit with an error, let it run."
     echo ""
