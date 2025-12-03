@@ -594,20 +594,25 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Z Image Turbo model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/z_image"
-        # Download all 4 model files from HuggingFace
+        # Download model files using hf download and move to expected location
         (
-            echo "Downloading Z Image Turbo diffusion model..."
-            wget -q --show-progress -O "$NETWORK_VOLUME/models/z_image/z_image_turbo_bf16.safetensors" \
-                "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors"
-            echo "Downloading Z Image Turbo VAE..."
-            wget -q --show-progress -O "$NETWORK_VOLUME/models/z_image/ae.safetensors" \
-                "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors"
-            echo "Downloading Z Image Turbo text encoder..."
-            wget -q --show-progress -O "$NETWORK_VOLUME/models/z_image/qwen_3_4b.safetensors" \
-                "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors"
+            echo "Downloading Z Image Turbo models from HuggingFace..."
+            # Download main model files (diffusion model, VAE, text encoder)
+            hf download Comfy-Org/z_image_turbo --local-dir "$NETWORK_VOLUME/models/z_image_turbo_temp"
+            
+            echo "Moving model files to final location..."
+            # Move files to the expected location
+            mv "$NETWORK_VOLUME/models/z_image_turbo_temp/split_files/diffusion_models/z_image_turbo_bf16.safetensors" "$NETWORK_VOLUME/models/z_image/"
+            mv "$NETWORK_VOLUME/models/z_image_turbo_temp/split_files/vae/ae.safetensors" "$NETWORK_VOLUME/models/z_image/"
+            mv "$NETWORK_VOLUME/models/z_image_turbo_temp/split_files/text_encoders/qwen_3_4b.safetensors" "$NETWORK_VOLUME/models/z_image/"
+            
+            # Clean up temp directory
+            rm -rf "$NETWORK_VOLUME/models/z_image_turbo_temp"
+            
             echo "Downloading Z Image Turbo training adapter..."
             wget -q --show-progress -O "$NETWORK_VOLUME/models/z_image/zimage_turbo_training_adapter_v2.safetensors" \
                 "https://huggingface.co/ostris/zimage_turbo_training_adapter/resolve/main/zimage_turbo_training_adapter_v2.safetensors"
+            
             echo "Z Image Turbo model download complete!"
         ) > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
