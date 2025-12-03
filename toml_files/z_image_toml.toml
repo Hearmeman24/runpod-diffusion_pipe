@@ -1,5 +1,5 @@
 # Output path for training runs. Each training run makes a new directory in here.
-output_dir = '/diffusion_pipe_working_folder/output_folder/z_image_lora'
+output_dir = '/training_outputs/diffusion_pipe_training_runs/z_image_lora'
 
 save_every_n_epochs = 10
 epochs = 80
@@ -11,13 +11,13 @@ dataset = 'examples/dataset.toml'
 
 [model]
 type = 'z_image'
-diffusion_model = '/diffusion_pipe_working_folder/models/z_image/z_image_turbo_bf16.safetensors'
-vae = '/diffusion_pipe_working_folder/models/z_image/z_image/ae.safetensors'
+diffusion_model = '/models/z_image/z_image_turbo_bf16.safetensors'
+vae = '/models/z_image/ae.safetensors'
 text_encoders = [
-    {path = '/diffusion_pipe_working_folder/models/z_image/z_image/qwen_3_4b.safetensors', type = 'lumina2'}
+    {path = '/models/z_image/qwen_3_4b.safetensors', type = 'lumina2'}
 ]
 # Use if training Z-Image-Turbo
-merge_adapters = ['/diffusion_pipe_working_folder/models/z_image/z_image/zimage_turbo_training_adapter_v2.safetensors']
+merge_adapters = ['/models/z_image/zimage_turbo_training_adapter_v2.safetensors']
 dtype = 'bfloat16'
 
 

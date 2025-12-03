@@ -255,9 +255,16 @@ if [ -d "/tmp/runpod-diffusion_pipe" ]; then
                 sed -i "s|ckpt_path = '/Wan/|ckpt_path = '$NETWORK_VOLUME/models/Wan/|g" "$toml_file"
                 sed -i "s|checkpoint_path = '/models/|checkpoint_path = '$NETWORK_VOLUME/models/|g" "$toml_file"
                 sed -i "s|output_dir = '/data/|output_dir = '$NETWORK_VOLUME/training_outputs/|g" "$toml_file"
+                sed -i "s|output_dir = '/training_outputs/|output_dir = '$NETWORK_VOLUME/training_outputs/|g" "$toml_file"
 
                 # Handle commented paths too
                 sed -i "s|#transformer_path = '/models/|#transformer_path = '$NETWORK_VOLUME/models/|g" "$toml_file"
+
+                # Z-Image model paths
+                sed -i "s|diffusion_model = '/models/|diffusion_model = '$NETWORK_VOLUME/models/|g" "$toml_file"
+                sed -i "s|vae = '/models/|vae = '$NETWORK_VOLUME/models/|g" "$toml_file"
+                sed -i "s|{path = '/models/|{path = '$NETWORK_VOLUME/models/|g" "$toml_file"
+                sed -i "s|merge_adapters = \['/models/|merge_adapters = ['$NETWORK_VOLUME/models/|g" "$toml_file"
 
                 echo "Updated paths in: $(basename "$toml_file")"
             fi
