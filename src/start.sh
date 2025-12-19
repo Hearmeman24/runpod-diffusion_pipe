@@ -218,6 +218,7 @@ if [ -d "/tmp/runpod-diffusion_pipe" ]; then
     # Only move Qwen folder if IS_DEV is set to true
     if [ "$IS_DEV" == "true" ]; then
         mv "$NETWORK_VOLUME/runpod-diffusion_pipe/qwen_image_musubi_training" "$NETWORK_VOLUME/" 2>/dev/null || true
+        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/z_image_musubi_training" "$NETWORK_VOLUME/" 2>/dev/null || true
     fi
 
 
