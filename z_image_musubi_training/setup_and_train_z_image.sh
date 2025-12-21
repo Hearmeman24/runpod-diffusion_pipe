@@ -137,6 +137,7 @@ SETUP_MARKER="$REPO_DIR/.setup_done"
 CAPTION_EXT="${CAPTION_EXT:-.txt}"
 NUM_REPEATS="${NUM_REPEATS:-10}"
 BATCH_SIZE="${BATCH_SIZE:-1}"
+TE_CACHE_BATCH_SIZE="${TE_CACHE_BATCH_SIZE:-1}"
 
 SAVE_EVERY_N_EPOCHS="${SAVE_EVERY_N_EPOCHS:-5}"
 MAX_TRAIN_EPOCHS="${MAX_TRAIN_EPOCHS:-40}"
@@ -145,11 +146,11 @@ NETWORK_DIM="${NETWORK_DIM:-32}"
 NETWORK_ALPHA="${NETWORK_ALPHA:-32}"
 
 LEARNING_RATE="${LEARNING_RATE:-1.0}"
-TEXT_ENCODER_LR="${TEXT_ENCODER_LR:-1.0}"
 PRIOR_LOSS_WEIGHT="${PRIOR_LOSS_WEIGHT:-1.0}"
 
 FORCE_SETUP="${FORCE_SETUP:-0}"
 KEEP_DATASET="${KEEP_DATASET:-0}"
+SKIP_CACHE="${SKIP_CACHE:-0}"
 
 ########################################
 # One-time setup (0–3)
@@ -260,13 +261,16 @@ if [ "$KEEP_DATASET" = "1" ] && [ -f "$DATASET_TOML" ]; then
 else
   echo ">>> Writing dataset.toml for Z Image"
   cat > "$DATASET_TOML" <<TOML
-[[datasets]]
+[general]
 resolution = [${RESOLUTION_LIST_NORM}]
+caption_extension = "${CAPTION_EXT}"
 batch_size = ${BATCH_SIZE}
+enable_bucket = true
+bucket_no_upscale = false
 
-[[datasets.subsets]]
-image_dir = '${DATASET_DIR}'
-caption_extension = '${CAPTION_EXT}'
+[[datasets]]
+image_directory = "${DATASET_DIR}"
+cache_directory = "${DATASET_DIR}/cache"
 num_repeats = ${NUM_REPEATS}
 TOML
 
@@ -275,9 +279,22 @@ TOML
 fi
 
 ########################################
-# 6) Training env niceties
+# 6) Pre-caching (required)
 ########################################
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True,max_split_size_mb:512
+if [ "$SKIP_CACHE" = "1" ]; then
+  echo ">>> SKIP_CACHE=1 set; skipping latent & Text Encoder caching."
+else
+  echo ">>> Caching latents (Z-Image)..."
+  python src/musubi_tuner/zimage_cache_latents.py \
+    --dataset_config "$DATASET_TOML" \
+    --vae "$ZIMAGE_VAE"
+
+  echo ">>> Caching Text Encoder outputs (Z-Image)..."
+  python src/musubi_tuner/zimage_cache_text_encoder_outputs.py \
+    --dataset_config "$DATASET_TOML" \
+    --text_encoder "$ZIMAGE_TEXT_ENCODER" \
+    --batch_size "$TE_CACHE_BATCH_SIZE"
+fi
 
 ########################################
 # 7) Launch training (built from config)
@@ -289,10 +306,10 @@ echo "    output_dir=$OUTPUT_DIR_FINAL"
 echo "    output_name=$OUTPUT_NAME_FINAL"
 echo "    epochs=$MAX_TRAIN_EPOCHS, save_every=$SAVE_EVERY_N_EPOCHS"
 echo "    network_dim=$NETWORK_DIM, network_alpha=$NETWORK_ALPHA"
-echo "    optimizer=prodigyopt.Prodigy (lr=$LEARNING_RATE, text_encoder_lr=$TEXT_ENCODER_LR)"
+echo "    optimizer=prodigyopt.Prodigy (lr=$LEARNING_RATE)"
 
 COMMON_FLAGS=(
-  --pretrained_model_name_or_path "$ZIMAGE_MODEL"
+  --dit "$ZIMAGE_MODEL"
   --vae "$ZIMAGE_VAE"
   --text_encoder "$ZIMAGE_TEXT_ENCODER"
   --base_weights "$ZIMAGE_BASE_WEIGHTS"
@@ -303,15 +320,13 @@ COMMON_FLAGS=(
   --max_train_epochs "$MAX_TRAIN_EPOCHS"
   --sdpa
   --mixed_precision bf16
-  --network_module networks.lora
+  --network_module networks.lora_zimage
   --network_dim "$NETWORK_DIM"
   --network_alpha "$NETWORK_ALPHA"
   --optimizer_type prodigyopt.Prodigy
   --learning_rate "$LEARNING_RATE"
-  --text_encoder_lr "$TEXT_ENCODER_LR"
   --lr_scheduler constant
   --gradient_checkpointing
-  --prior_loss_weight "$PRIOR_LOSS_WEIGHT"
 )
 
 # Add optimizer args if configured as an array

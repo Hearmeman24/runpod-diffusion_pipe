@@ -18,6 +18,10 @@ NUM_REPEATS=10
 # Z Image recipe uses batch_size=1 by default
 BATCH_SIZE=1
 
+# Text Encoder output caching batch size.
+# Larger values use more VRAM. Start at 1 if unsure.
+TE_CACHE_BATCH_SIZE=1
+
 # resolution for dataset.toml
 # e.g. "1024, 1024"
 RESOLUTION_LIST="1024, 1024"
@@ -37,7 +41,6 @@ NETWORK_ALPHA=32
 # ---- Optimizer (Prodigy) ----
 # Prodigy is self-adaptive; it expects lr=1.0.
 LEARNING_RATE=1.0
-TEXT_ENCODER_LR=1.0
 
 # Optimizer args are passed as separate CLI args.
 # shellcheck disable=SC2034
@@ -53,3 +56,4 @@ PRIOR_LOSS_WEIGHT=1.0
 # Flags to control repeatable behavior
 FORCE_SETUP=0
 KEEP_DATASET=0
+SKIP_CACHE=0
