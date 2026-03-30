@@ -744,6 +744,9 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             timeout_counter=0
             max_timeout=3600  # 1 hour timeout
             CAPTION_BAR_WIDTH=30
+            SPINNER_CHARS='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+            spinner_idx=0
+            progress_started=false
 
             while kill -0 "$IMAGE_CAPTION_PID" 2>/dev/null; do
                 # Check for completion
@@ -761,6 +764,7 @@ if [ "$CAPTION_MODE" != "skip" ]; then
                 if [ -f "$CAPTION_LOG" ]; then
                     progress_line=$(tail -n 5 "$CAPTION_LOG" 2>/dev/null | grep -oE '\[[0-9]+/[0-9]+\]' | tail -1)
                     if [ -n "$progress_line" ]; then
+                        progress_started=true
                         current=$(echo "$progress_line" | grep -oE '[0-9]+' | head -1)
                         total=$(echo "$progress_line" | grep -oE '[0-9]+' | tail -1)
                         if [ -n "$total" ] && [ "$total" -gt 0 ] 2>/dev/null; then
@@ -772,6 +776,32 @@ if [ "$CAPTION_MODE" != "skip" ]; then
                             printf "\r\033[K  ${CYAN}[%s%s]${NC} %3d%% (%s/%s images)" "$bar" "$bar_empty" "$pct" "$current" "$total"
                         fi
                     fi
+                fi
+
+                # Show spinner while model is loading (before any [i/total] progress appears)
+                if [ "$progress_started" = false ]; then
+                    spinner_char="${SPINNER_CHARS:$spinner_idx:1}"
+                    # Show latest log status during loading phase
+                    status_hint=""
+                    if [ -f "$CAPTION_LOG" ]; then
+                        if tail -n 5 "$CAPTION_LOG" 2>/dev/null | grep -q "Loading model"; then
+                            status_hint="Loading caption model..."
+                        elif tail -n 5 "$CAPTION_LOG" 2>/dev/null | grep -q "Loading processor"; then
+                            status_hint="Loading processor..."
+                        elif tail -n 5 "$CAPTION_LOG" 2>/dev/null | grep -q "Installing"; then
+                            status_hint="Installing dependencies..."
+                        elif tail -n 5 "$CAPTION_LOG" 2>/dev/null | grep -q "setup"; then
+                            status_hint="Setting up environment..."
+                        elif tail -n 5 "$CAPTION_LOG" 2>/dev/null | grep -q "CUDA"; then
+                            status_hint="Checking CUDA compatibility..."
+                        else
+                            status_hint="Loading..."
+                        fi
+                    else
+                        status_hint="Starting..."
+                    fi
+                    printf "\r\033[K  ${CYAN}%s${NC} %s" "$spinner_char" "$status_hint"
+                    spinner_idx=$(( (spinner_idx + 1) % ${#SPINNER_CHARS} ))
                 fi
 
                 sleep 2
