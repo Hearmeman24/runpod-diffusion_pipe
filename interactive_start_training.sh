@@ -833,17 +833,17 @@ fi
 if [ -n "$MODEL_DOWNLOAD_PID" ]; then
     print_header "Finalizing Model Download"
     echo ""
-    print_info "Downloading model — progress shown below:"
+    print_info "Downloading model..."
     echo ""
 
     DOWNLOAD_LOG="$NETWORK_VOLUME/logs/model_download.log"
     timeout_counter=0
     max_timeout=10800  # 3 hour timeout for large models
-    last_line_shown=""
+    BAR_WIDTH=30
 
     while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
-        # Check for errors in log
-        if tail -n 20 "$DOWNLOAD_LOG" 2>/dev/null | grep -qi "error\|failed\|exception\|unauthorized\|403\|404"; then
+        # Check for auth/access errors in log
+        if tail -n 20 "$DOWNLOAD_LOG" 2>/dev/null | grep -qi "unauthorized\|403\|404"; then
             echo ""
             print_error "Model download encountered errors."
             print_info "Check the full log: tail -n 50 $DOWNLOAD_LOG"
@@ -855,13 +855,27 @@ if [ -n "$MODEL_DOWNLOAD_PID" ]; then
             exit 1
         fi
 
-        # Show the latest progress line from the log (tqdm bars, file counts, etc.)
+        # Extract progress from hf download tqdm output
+        # Matches patterns like: "Fetching 30 files:  47%|...| 14/30"
+        # or individual file downloads: "model.safetensors:  65%|...| 1.30G/2.00G"
         if [ -f "$DOWNLOAD_LOG" ]; then
-            current_line=$(tail -n 1 "$DOWNLOAD_LOG" 2>/dev/null | tr -d '\n')
-            if [ -n "$current_line" ] && [ "$current_line" != "$last_line_shown" ]; then
-                # Clear the current line and overwrite with new progress
-                printf "\r\033[K  %s" "$current_line"
-                last_line_shown="$current_line"
+            progress_line=$(tail -c 4096 "$DOWNLOAD_LOG" 2>/dev/null | tr '\r' '\n' | grep -E '[0-9]+%\|' | tail -1)
+            if [ -n "$progress_line" ]; then
+                pct=$(echo "$progress_line" | grep -oE '[0-9]+%' | head -1 | tr -d '%')
+                counts=$(echo "$progress_line" | grep -oE '[0-9]+/[0-9]+' | head -1)
+
+                if [ -n "$pct" ]; then
+                    filled=$(( pct * BAR_WIDTH / 100 ))
+                    empty=$(( BAR_WIDTH - filled ))
+                    bar=$(printf '%0.s█' $(seq 1 $filled 2>/dev/null) 2>/dev/null)
+                    bar_empty=$(printf '%0.s░' $(seq 1 $empty 2>/dev/null) 2>/dev/null)
+
+                    if [ -n "$counts" ]; then
+                        printf "\r\033[K  ${CYAN}[%s%s]${NC} %3d%% (%s files)" "$bar" "$bar_empty" "$pct" "$counts"
+                    else
+                        printf "\r\033[K  ${CYAN}[%s%s]${NC} %3d%%" "$bar" "$bar_empty" "$pct"
+                    fi
+                fi
             fi
         fi
 
