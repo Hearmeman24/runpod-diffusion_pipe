@@ -272,6 +272,7 @@ status_msg "[4/4] Starting JupyterLab..."
 jupyter-lab --ip=0.0.0.0 --allow-root --no-browser \
     --NotebookApp.token='' --NotebookApp.password='' \
     --ServerApp.allow_origin='*' --ServerApp.allow_credentials=True \
+    --ServerApp.terminado_settings='{"shell_command": ["/bin/bash"]}' \
     --notebook-dir="$NETWORK_VOLUME" >> "$STARTUP_LOG" 2>&1 &
 
 # ============================================================
