@@ -784,15 +784,32 @@ if [ "$CAPTION_MODE" != "skip" ]; then
                     # Show latest log status during loading phase
                     status_hint=""
                     if [ -f "$CAPTION_LOG" ]; then
-                        if tail -n 5 "$CAPTION_LOG" 2>/dev/null | grep -q "Loading model"; then
+                        recent_log=$(tail -n 10 "$CAPTION_LOG" 2>/dev/null)
+                        if echo "$recent_log" | grep -q "Loading model"; then
                             status_hint="Loading caption model..."
-                        elif tail -n 5 "$CAPTION_LOG" 2>/dev/null | grep -q "Loading processor"; then
+                        elif echo "$recent_log" | grep -q "Loading processor"; then
                             status_hint="Loading processor..."
-                        elif tail -n 5 "$CAPTION_LOG" 2>/dev/null | grep -q "Installing"; then
-                            status_hint="Installing dependencies..."
-                        elif tail -n 5 "$CAPTION_LOG" 2>/dev/null | grep -q "setup"; then
+                        elif echo "$recent_log" | grep -q "Model loaded"; then
+                            status_hint="Model loaded, starting captioning..."
+                        elif echo "$recent_log" | grep -qE "Downloading.*\.whl"; then
+                            # Extract the package name being downloaded
+                            pkg=$(echo "$recent_log" | grep -oE "Downloading [a-zA-Z_-]+" | tail -1 | sed 's/Downloading //')
+                            if [ -n "$pkg" ]; then
+                                status_hint="Downloading $pkg..."
+                            else
+                                status_hint="Downloading dependencies..."
+                            fi
+                        elif echo "$recent_log" | grep -q "Installing collected"; then
+                            status_hint="Installing packages..."
+                        elif echo "$recent_log" | grep -q "Installing requirements"; then
+                            status_hint="Installing requirements..."
+                        elif echo "$recent_log" | grep -q "Upgrading pip"; then
+                            status_hint="Upgrading pip..."
+                        elif echo "$recent_log" | grep -q "Creating virtual environment"; then
+                            status_hint="Creating virtual environment..."
+                        elif echo "$recent_log" | grep -q "setup"; then
                             status_hint="Setting up environment..."
-                        elif tail -n 5 "$CAPTION_LOG" 2>/dev/null | grep -q "CUDA"; then
+                        elif echo "$recent_log" | grep -q "CUDA"; then
                             status_hint="Checking CUDA compatibility..."
                         else
                             status_hint="Loading..."
