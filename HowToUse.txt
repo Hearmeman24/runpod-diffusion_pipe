@@ -15,8 +15,6 @@ GETTING STARTED
 STEP 1: Initialize Terminal Environment
 ---------------------------------------
 1. Click the Terminal button to open a command prompt
-2. Type: bash
-3. Press ENTER to enter bash shell
 
 STEP 2: Start Interactive Training Process
 ------------------------------------------
@@ -29,10 +27,14 @@ STEP 3: Follow the Interactive Setup
 The script will guide you through configuration options:
 
 Model Selection:
-- Flux models
-- SDXL models  
-- Wan models
-- Qwen Image model
+- Flux (image, requires Hugging Face token)
+- SDXL (image)
+- Wan 1.3B (text-to-video)
+- Wan 14B T2V (text-to-video, supports T2V and I2V)
+- Wan 14B I2V (image-to-video, advanced users)
+- Qwen Image (image, 1024 resolution)
+- Z Image Turbo (image)
+- Qwen Image 2512 (image, 1328 resolution)
 
 API Key Configuration:
 - Hugging Face API key (required for Flux models)
@@ -55,7 +57,7 @@ The automated process will:
 RESULTS LOCATION
 ===============================================================================
 
-Your trained LoRA files will be saved in: training_outputs/
+Your trained LoRA files will be saved in: output_folder/
 
 ===============================================================================
 PREPARATION CHECKLIST
@@ -84,9 +86,11 @@ beginner-friendly
 Model Choice: Choose your model type based on your specific use case:
 - Flux: Latest high-quality diffusion models
 - SDXL: Stable and well-supported option
-- Wan: Specialized for certain applications
+- Wan 1.3B/14B: Video generation (text-to-video and image-to-video)
+- Qwen Image / Qwen Image 2512: High-quality image generation
+- Z Image Turbo: Fast image generation with turbo adapter
 
-Results: Check the training_outputs/ folder for your completed LoRA files
+Results: Check the output_folder/ directory for your completed LoRA files
 
 ===============================================================================
 
