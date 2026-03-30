@@ -833,18 +833,20 @@ fi
 if [ -n "$MODEL_DOWNLOAD_PID" ]; then
     print_header "Finalizing Model Download"
     echo ""
-    print_info "Waiting for model download to complete..."
-    print_info "To view model download progress, open a new terminal window and paste:"
-    echo "  tail -f $NETWORK_VOLUME/logs/model_download.log"
+    print_info "Downloading model — progress shown below:"
     echo ""
+
+    DOWNLOAD_LOG="$NETWORK_VOLUME/logs/model_download.log"
     timeout_counter=0
     max_timeout=10800  # 3 hour timeout for large models
+    last_line_shown=""
+
     while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
         # Check for errors in log
-        if tail -n 20 "$NETWORK_VOLUME/logs/model_download.log" 2>/dev/null | grep -qi "error\|failed\|exception\|unauthorized\|403\|404"; then
+        if tail -n 20 "$DOWNLOAD_LOG" 2>/dev/null | grep -qi "error\|failed\|exception\|unauthorized\|403\|404"; then
             echo ""
             print_error "Model download encountered errors."
-            print_info "Check the full log: tail -n 50 $NETWORK_VOLUME/logs/model_download.log"
+            print_info "Check the full log: tail -n 50 $DOWNLOAD_LOG"
             print_info "Common causes:"
             print_info "  - Network connectivity issues (try restarting the pod)"
             print_info "  - Invalid or expired Hugging Face token"
@@ -852,14 +854,24 @@ if [ -n "$MODEL_DOWNLOAD_PID" ]; then
             kill "$MODEL_DOWNLOAD_PID" 2>/dev/null || true
             exit 1
         fi
-        echo -n "."
-        sleep 3
-        timeout_counter=$((timeout_counter + 3))
+
+        # Show the latest progress line from the log (tqdm bars, file counts, etc.)
+        if [ -f "$DOWNLOAD_LOG" ]; then
+            current_line=$(tail -n 1 "$DOWNLOAD_LOG" 2>/dev/null | tr -d '\n')
+            if [ -n "$current_line" ] && [ "$current_line" != "$last_line_shown" ]; then
+                # Clear the current line and overwrite with new progress
+                printf "\r\033[K  %s" "$current_line"
+                last_line_shown="$current_line"
+            fi
+        fi
+
+        sleep 2
+        timeout_counter=$((timeout_counter + 2))
         if [ $timeout_counter -ge $max_timeout ]; then
             echo ""
             print_error "Model download timed out after 3 hours."
             print_info "This usually means the network is very slow or the download stalled."
-            print_info "Check progress: tail -n 20 $NETWORK_VOLUME/logs/model_download.log"
+            print_info "Check progress: tail -n 20 $DOWNLOAD_LOG"
             print_info "Try restarting the pod and running the script again — downloads resume from where they left off."
             kill "$MODEL_DOWNLOAD_PID" 2>/dev/null || true
             exit 1
