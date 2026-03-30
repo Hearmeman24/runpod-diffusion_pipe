@@ -736,28 +736,49 @@ if [ "$CAPTION_MODE" != "skip" ]; then
                 bash "$JOY_CAPTION_SCRIPT" > "$NETWORK_VOLUME/logs/image_captioning.log" 2>&1 &
             fi
             IMAGE_CAPTION_PID=$!
-            print_success "Image captioning started in background (PID: $IMAGE_CAPTION_PID)"
+            print_success "Image captioning started (PID: $IMAGE_CAPTION_PID)"
+            print_info "Captioning images... (initial run can take 5-20 minutes to load model)"
+            echo ""
 
-            # Wait for image captioning with progress indicator
-            print_info "Waiting for image captioning to complete..., initial run can take 5-20 minutes."
+            CAPTION_LOG="$NETWORK_VOLUME/logs/image_captioning.log"
             timeout_counter=0
             max_timeout=3600  # 1 hour timeout
+            CAPTION_BAR_WIDTH=30
+
             while kill -0 "$IMAGE_CAPTION_PID" 2>/dev/null; do
-                # Check for completion first
-                if tail -n 1 "$NETWORK_VOLUME/logs/image_captioning.log" 2>/dev/null | grep -q "All done!"; then
+                # Check for completion
+                if tail -n 1 "$CAPTION_LOG" 2>/dev/null | grep -q "All done!"; then
                     break
                 fi
-                # Check for actual errors (more specific patterns to avoid false positives)
-                # Look for actual error patterns: [ERROR], Error:, Traceback, Exception:, or failed with exit code
-                if tail -n 20 "$NETWORK_VOLUME/logs/image_captioning.log" 2>/dev/null | grep -qiE "(^\[ERROR\]|^Error:|^Traceback|Exception:|failed with exit)"; then
-                    print_error "Image captioning encountered errors. Check log: $NETWORK_VOLUME/logs/image_captioning.log"
+                # Check for errors
+                if tail -n 20 "$CAPTION_LOG" 2>/dev/null | grep -qiE "(^\[ERROR\]|^Error:|^Traceback|Exception:|failed with exit)"; then
+                    echo ""
+                    print_error "Image captioning encountered errors. Check log: $CAPTION_LOG"
                     exit 1
                 fi
-                echo -n "."
+
+                # Parse progress from "[3/20] Processing ..." or "[3/20] Skipping ..."
+                if [ -f "$CAPTION_LOG" ]; then
+                    progress_line=$(tail -n 5 "$CAPTION_LOG" 2>/dev/null | grep -oE '\[[0-9]+/[0-9]+\]' | tail -1)
+                    if [ -n "$progress_line" ]; then
+                        current=$(echo "$progress_line" | grep -oE '[0-9]+' | head -1)
+                        total=$(echo "$progress_line" | grep -oE '[0-9]+' | tail -1)
+                        if [ -n "$total" ] && [ "$total" -gt 0 ] 2>/dev/null; then
+                            pct=$(( current * 100 / total ))
+                            filled=$(( pct * CAPTION_BAR_WIDTH / 100 ))
+                            empty=$(( CAPTION_BAR_WIDTH - filled ))
+                            bar=$(printf '%0.s█' $(seq 1 $filled 2>/dev/null) 2>/dev/null)
+                            bar_empty=$(printf '%0.s░' $(seq 1 $empty 2>/dev/null) 2>/dev/null)
+                            printf "\r\033[K  ${CYAN}[%s%s]${NC} %3d%% (%s/%s images)" "$bar" "$bar_empty" "$pct" "$current" "$total"
+                        fi
+                    fi
+                fi
+
                 sleep 2
                 timeout_counter=$((timeout_counter + 2))
                 if [ $timeout_counter -ge $max_timeout ]; then
-                    print_error "Image captioning timed out after 1 hour. Check log: $NETWORK_VOLUME/logs/image_captioning.log"
+                    echo ""
+                    print_error "Image captioning timed out after 1 hour. Check log: $CAPTION_LOG"
                     exit 1
                 fi
             done
