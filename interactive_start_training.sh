@@ -801,6 +801,10 @@ if [ "$CAPTION_MODE" != "skip" ]; then
                         elif echo "$recent_log" | grep -qE "Fetching [0-9]+ files"; then
                             fetch_info=$(echo "$recent_log" | grep -oE "Fetching [0-9]+ files" | tail -1)
                             status_hint="$fetch_info from HuggingFace... (${elapsed_str})"
+                        elif echo "$recent_log" | grep -qE "Downloading model|downloading.*safetensors|\.safetensors"; then
+                            status_hint="Downloading model weights... (${elapsed_str})"
+                        elif echo "$recent_log" | grep -qE "HTTP Request|resolve"; then
+                            status_hint="Downloading model from HuggingFace... (${elapsed_str})"
                         elif echo "$recent_log" | grep -q "Loading model"; then
                             status_hint="Loading caption model into GPU... (${elapsed_str})"
                         elif echo "$recent_log" | grep -q "Loading processor"; then
@@ -822,12 +826,22 @@ if [ "$CAPTION_MODE" != "skip" ]; then
                             status_hint="Upgrading pip... (${elapsed_str})"
                         elif echo "$recent_log" | grep -q "Creating virtual environment"; then
                             status_hint="Creating virtual environment... (${elapsed_str})"
-                        elif echo "$recent_log" | grep -q "setup"; then
+                        elif echo "$recent_log" | grep -qE "setup|Setting up"; then
                             status_hint="Setting up environment... (${elapsed_str})"
                         elif echo "$recent_log" | grep -q "CUDA"; then
                             status_hint="Checking CUDA compatibility..."
+                        elif echo "$recent_log" | grep -qE "Collecting|Requirement already"; then
+                            status_hint="Resolving dependencies... (${elapsed_str})"
+                        elif echo "$recent_log" | grep -qE "Retrying|timed out"; then
+                            status_hint="Network retry, downloading model... (${elapsed_str})"
                         else
-                            status_hint="Loading... (${elapsed_str})"
+                            # Show the last meaningful log line as context
+                            last_msg=$(echo "$recent_log" | grep -oE "INFO - .*" | tail -1 | sed 's/INFO - //')
+                            if [ -n "$last_msg" ] && [ ${#last_msg} -lt 60 ]; then
+                                status_hint="$last_msg (${elapsed_str})"
+                            else
+                                status_hint="Setting up caption model... (${elapsed_str})"
+                            fi
                         fi
                     else
                         status_hint="Starting..."
