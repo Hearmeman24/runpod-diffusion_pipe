@@ -737,7 +737,9 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             fi
             IMAGE_CAPTION_PID=$!
             print_success "Image captioning started (PID: $IMAGE_CAPTION_PID)"
-            print_info "Captioning images... (initial run can take 5-20 minutes to load model)"
+            print_info "Captioning images..."
+            print_info "First run downloads the caption model (~16GB) and may take up to 20 minutes."
+            print_info "Subsequent runs will be much faster."
             echo ""
 
             CAPTION_LOG="$NETWORK_VOLUME/logs/image_captioning.log"
@@ -785,36 +787,47 @@ if [ "$CAPTION_MODE" != "skip" ]; then
                     status_hint=""
                     if [ -f "$CAPTION_LOG" ]; then
                         recent_log=$(tail -n 10 "$CAPTION_LOG" 2>/dev/null)
+                        # Show elapsed time alongside status
+                        elapsed_min=$(( timeout_counter / 60 ))
+                        elapsed_sec=$(( timeout_counter % 60 ))
+                        if [ $elapsed_min -gt 0 ]; then
+                            elapsed_str="${elapsed_min}m ${elapsed_sec}s"
+                        else
+                            elapsed_str="${elapsed_sec}s"
+                        fi
+
                         if echo "$recent_log" | grep -q "Pre-loading model"; then
-                            status_hint="Downloading and loading model..."
+                            status_hint="Downloading and loading model... (${elapsed_str})"
+                        elif echo "$recent_log" | grep -qE "Fetching [0-9]+ files"; then
+                            fetch_info=$(echo "$recent_log" | grep -oE "Fetching [0-9]+ files" | tail -1)
+                            status_hint="$fetch_info from HuggingFace... (${elapsed_str})"
                         elif echo "$recent_log" | grep -q "Loading model"; then
-                            status_hint="Loading caption model..."
+                            status_hint="Loading caption model into GPU... (${elapsed_str})"
                         elif echo "$recent_log" | grep -q "Loading processor"; then
-                            status_hint="Loading processor..."
+                            status_hint="Loading processor... (${elapsed_str})"
                         elif echo "$recent_log" | grep -q "Model loaded\|Model ready"; then
                             status_hint="Model loaded, starting captioning..."
                         elif echo "$recent_log" | grep -qE "Downloading.*\.whl"; then
-                            # Extract the package name being downloaded
                             pkg=$(echo "$recent_log" | grep -oE "Downloading [a-zA-Z_-]+" | tail -1 | sed 's/Downloading //')
                             if [ -n "$pkg" ]; then
-                                status_hint="Downloading $pkg..."
+                                status_hint="Downloading $pkg... (${elapsed_str})"
                             else
-                                status_hint="Downloading dependencies..."
+                                status_hint="Downloading dependencies... (${elapsed_str})"
                             fi
                         elif echo "$recent_log" | grep -q "Installing collected"; then
-                            status_hint="Installing packages..."
+                            status_hint="Installing packages... (${elapsed_str})"
                         elif echo "$recent_log" | grep -q "Installing requirements"; then
-                            status_hint="Installing requirements..."
+                            status_hint="Installing requirements... (${elapsed_str})"
                         elif echo "$recent_log" | grep -q "Upgrading pip"; then
-                            status_hint="Upgrading pip..."
+                            status_hint="Upgrading pip... (${elapsed_str})"
                         elif echo "$recent_log" | grep -q "Creating virtual environment"; then
-                            status_hint="Creating virtual environment..."
+                            status_hint="Creating virtual environment... (${elapsed_str})"
                         elif echo "$recent_log" | grep -q "setup"; then
-                            status_hint="Setting up environment..."
+                            status_hint="Setting up environment... (${elapsed_str})"
                         elif echo "$recent_log" | grep -q "CUDA"; then
                             status_hint="Checking CUDA compatibility..."
                         else
-                            status_hint="Loading..."
+                            status_hint="Loading... (${elapsed_str})"
                         fi
                     else
                         status_hint="Starting..."
