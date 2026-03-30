@@ -19,6 +19,12 @@ import sys
 system_prompt = "Write a detailed description for this image in 50 words or less. Do NOT mention any text that is in the image."
 
 NETWORK_VOLUME = os.getenv("NETWORK_VOLUME")
+if not NETWORK_VOLUME:
+    print("Error: NETWORK_VOLUME environment variable is not set.")
+    print("  This is usually set automatically by the startup script.")
+    print("  If running manually, export NETWORK_VOLUME to your working directory.")
+    sys.exit(1)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,

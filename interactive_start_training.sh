@@ -1,6 +1,34 @@
 #!/bin/bash
 set -e  # Exit immediately if a command exits with a non-zero status
 
+# Global error handler — catches unexpected failures from set -e
+trap 'on_error $LINENO' ERR
+
+on_error() {
+    local line_number=$1
+    echo ""
+    echo -e "\033[0;31m================================================\033[0m"
+    echo -e "\033[0;31m  ERROR: Script failed unexpectedly at line $line_number\033[0m"
+    echo -e "\033[0;31m================================================\033[0m"
+    echo ""
+    echo -e "\033[0;34m  What happened:\033[0m"
+    echo -e "    A command exited with an error that the script didn't expect."
+    echo ""
+    echo -e "\033[0;34m  What to check:\033[0m"
+    echo -e "    1. Review the output above this message for the actual error"
+    echo -e "    2. Check logs in: \$NETWORK_VOLUME/logs/"
+    echo -e "       - model_download.log    (model download issues)"
+    echo -e "       - image_captioning.log  (captioning issues)"
+    echo -e "       - video_captioning.log  (video captioning issues)"
+    echo -e "    3. Make sure your datasets are in the correct directories"
+    echo -e "    4. Verify you have enough disk space: df -h"
+    echo ""
+    echo -e "\033[0;34m  If the issue persists:\033[0m"
+    echo -e "    - Try restarting the pod and running the script again"
+    echo -e "    - Check GitHub issues for known problems"
+    echo ""
+}
+
 # Colors for better UX - compatible with both light and dark terminals
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -116,10 +144,11 @@ echo "4) Wan 14B Text-To-Video (Supports both T2V and I2V)"
 echo "5) Wan 14B Image-To-Video (Not recommended, for advanced users only)"
 echo "6) Qwen Image"
 echo "7) Z Image Turbo"
+echo "8) Qwen Image 2512"
 echo ""
 
 while true; do
-    read -p "Enter your choice (1-7): " model_choice
+    read -p "Enter your choice (1-8): " model_choice
     case $model_choice in
         1)
             MODEL_TYPE="flux"
@@ -163,8 +192,14 @@ while true; do
             TOML_FILE="z_image_toml.toml"
             break
             ;;
+        8)
+            MODEL_TYPE="qwen_2512"
+            MODEL_NAME="Qwen Image 2512"
+            TOML_FILE="qwen_2512_toml.toml"
+            break
+            ;;
         *)
-            print_error "Invalid choice. Please enter a number between 1-7."
+            print_error "Invalid choice. Please enter a number between 1-8."
             ;;
     esac
 done
@@ -182,7 +217,8 @@ if [ "$MODEL_TYPE" = "flux" ]; then
         echo ""
         read -p "Please enter your Hugging Face token: " hf_token
         if [ -z "$hf_token" ]; then
-            print_error "Token cannot be empty. Exiting."
+            print_error "Token cannot be empty."
+            print_info "You can find your token at: https://huggingface.co/settings/tokens"
             exit 1
         fi
         export HUGGING_FACE_TOKEN="$hf_token"
@@ -246,7 +282,8 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             echo ""
             read -p "Please enter your Gemini API key: " gemini_key
             if [ -z "$gemini_key" ]; then
-                print_error "API key cannot be empty. Exiting."
+                print_error "API key cannot be empty."
+                print_info "Get a Gemini API key at: https://aistudio.google.com/apikey"
                 exit 1
             fi
             export GEMINI_API_KEY="$gemini_key"
@@ -428,6 +465,8 @@ case $MODEL_TYPE in
     "flux")
         if [ -z "$HUGGING_FACE_TOKEN" ] || [ "$HUGGING_FACE_TOKEN" = "token_here" ]; then
             print_error "HUGGING_FACE_TOKEN is not set properly."
+            print_info "Flux requires a Hugging Face token for download."
+            print_info "Set it via the RunPod template environment variables, or enter it when prompted."
             exit 1
         fi
 
@@ -451,7 +490,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Flux model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/flux"
-        hf download black-forest-labs/FLUX.1-dev --local-dir "$NETWORK_VOLUME/models/flux" --repo-type model --token "$HUGGING_FACE_TOKEN" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        hf download black-forest-labs/FLUX.1-dev --local-dir "$NETWORK_VOLUME/models/flux" --repo-type model --token "$HUGGING_FACE_TOKEN" >> "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -474,7 +513,7 @@ case $MODEL_TYPE in
             print_warning "Please ensure the file exists or manually copy it to: $NETWORK_VOLUME/diffusion_pipe/examples/sdxl.toml"
         fi
         print_info "Starting Base SDXL model download in background..."
-        hf download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        hf download timoshishi/sdXL_v10VAEFix sdXL_v10VAEFix.safetensors --local-dir "$NETWORK_VOLUME/models/" >> "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -498,7 +537,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Wan 1.3B model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B"
-        hf download Wan-AI/Wan2.1-T2V-1.3B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        hf download Wan-AI/Wan2.1-T2V-1.3B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" >> "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -522,7 +561,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Wan 14B T2V model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B"
-        hf download Wan-AI/Wan2.1-T2V-14B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        hf download Wan-AI/Wan2.1-T2V-14B --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" >> "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -546,7 +585,7 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Wan 14B I2V model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P"
-        hf download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        hf download Wan-AI/Wan2.1-I2V-14B-480P --local-dir "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" >> "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
@@ -570,14 +609,51 @@ case $MODEL_TYPE in
         fi
         print_info "Starting Qwen Image model download in background..."
         mkdir -p "$NETWORK_VOLUME/models/Qwen-Image"
-        hf download Qwen/Qwen-Image --local-dir "$NETWORK_VOLUME/models/Qwen-Image" > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        hf download Qwen/Qwen-Image --local-dir "$NETWORK_VOLUME/models/Qwen-Image" >> "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        MODEL_DOWNLOAD_PID=$!
+        ;;
+
+    "qwen_2512")
+        # Ensure examples directory exists
+        mkdir -p "$NETWORK_VOLUME/diffusion_pipe/examples"
+
+        # Check if file already exists in destination
+        if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/qwen_2512_toml.toml" ]; then
+            print_info "qwen_2512_toml.toml already exists in examples directory"
+            # Update output_dir even if file already exists
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/qwen_2512_lora'|" "$NETWORK_VOLUME/diffusion_pipe/examples/qwen_2512_toml.toml"
+        elif [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/qwen_2512_toml.toml" ]; then
+            # Update output_dir before moving
+            sed -i "s|^output_dir = .*|output_dir = '$NETWORK_VOLUME/output_folder/qwen_2512_lora'|" "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/qwen_2512_toml.toml"
+            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/qwen_2512_toml.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+            print_success "Moved qwen_2512_toml.toml to examples directory"
+        else
+            print_warning "qwen_2512_toml.toml not found at expected location: $NETWORK_VOLUME/runpod-diffusion_pipe/toml_files/qwen_2512_toml.toml"
+            print_warning "Please ensure the file exists or manually copy it to: $NETWORK_VOLUME/diffusion_pipe/examples/qwen_2512_toml.toml"
+        fi
+
+        # Copy dataset_qwen.toml for 1328 resolution
+        if [ ! -f "$NETWORK_VOLUME/diffusion_pipe/examples/dataset_qwen.toml" ]; then
+            if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/dataset_qwen.toml" ]; then
+                cp "$NETWORK_VOLUME/runpod-diffusion_pipe/dataset_qwen.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+                print_success "Copied dataset_qwen.toml (1328 resolution) to examples directory"
+            else
+                print_warning "dataset_qwen.toml not found. Qwen Image 2512 requires 1328 resolution dataset config."
+            fi
+        else
+            print_info "dataset_qwen.toml already exists in examples directory"
+        fi
+
+        print_info "Starting Qwen Image 2512 model download in background..."
+        mkdir -p "$NETWORK_VOLUME/models/Qwen-Image-2512"
+        hf download Qwen/Qwen-Image-2512 --local-dir "$NETWORK_VOLUME/models/Qwen-Image-2512" >> "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
         ;;
 
     "z_image_turbo")
         # Ensure examples directory exists
         mkdir -p "$NETWORK_VOLUME/diffusion_pipe/examples"
-        
+
         # Check if file already exists in destination
         if [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/z_image_toml.toml" ]; then
             print_info "z_image_toml.toml already exists in examples directory"
@@ -614,8 +690,13 @@ case $MODEL_TYPE in
                 "https://huggingface.co/ostris/zimage_turbo_training_adapter/resolve/main/zimage_turbo_training_adapter_v2.safetensors"
             
             echo "Z Image Turbo model download complete!"
-        ) > "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
+        ) >> "$NETWORK_VOLUME/logs/model_download.log" 2>&1 &
         MODEL_DOWNLOAD_PID=$!
+        ;;
+    *)
+        print_error "Unknown model type: $MODEL_TYPE"
+        print_error "This is a bug in the script — the model selection menu and download handler are out of sync."
+        exit 1
         ;;
 esac
 
@@ -690,6 +771,8 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             print_success "Image captioning completed!"
         else
             print_error "JoyCaption script not found at: $JOY_CAPTION_SCRIPT"
+            print_info "This file should have been set up during pod initialization."
+            print_info "Try restarting the pod to trigger the setup again."
             exit 1
         fi
     fi
@@ -737,6 +820,8 @@ if [ "$CAPTION_MODE" != "skip" ]; then
             fi
         else
             print_error "Video captioning script not found at: $VIDEO_CAPTION_SCRIPT"
+            print_info "This file should have been set up during pod initialization."
+            print_info "Try restarting the pod to trigger the setup again."
             exit 1
         fi
     fi
@@ -757,7 +842,13 @@ if [ -n "$MODEL_DOWNLOAD_PID" ]; then
     while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
         # Check for errors in log
         if tail -n 20 "$NETWORK_VOLUME/logs/model_download.log" 2>/dev/null | grep -qi "error\|failed\|exception\|unauthorized\|403\|404"; then
-            print_error "Model download encountered errors. Check log: $NETWORK_VOLUME/logs/model_download.log"
+            echo ""
+            print_error "Model download encountered errors."
+            print_info "Check the full log: tail -n 50 $NETWORK_VOLUME/logs/model_download.log"
+            print_info "Common causes:"
+            print_info "  - Network connectivity issues (try restarting the pod)"
+            print_info "  - Invalid or expired Hugging Face token"
+            print_info "  - Insufficient disk space (check with: df -h)"
             kill "$MODEL_DOWNLOAD_PID" 2>/dev/null || true
             exit 1
         fi
@@ -765,7 +856,11 @@ if [ -n "$MODEL_DOWNLOAD_PID" ]; then
         sleep 3
         timeout_counter=$((timeout_counter + 3))
         if [ $timeout_counter -ge $max_timeout ]; then
-            print_error "Model download timed out after 3 hours. Check log: $NETWORK_VOLUME/logs/model_download.log"
+            echo ""
+            print_error "Model download timed out after 3 hours."
+            print_info "This usually means the network is very slow or the download stalled."
+            print_info "Check progress: tail -n 20 $NETWORK_VOLUME/logs/model_download.log"
+            print_info "Try restarting the pod and running the script again — downloads resume from where they left off."
             kill "$MODEL_DOWNLOAD_PID" 2>/dev/null || true
             exit 1
         fi
@@ -773,49 +868,58 @@ if [ -n "$MODEL_DOWNLOAD_PID" ]; then
     echo ""
     wait "$MODEL_DOWNLOAD_PID"
     download_exit_code=$?
-    
+
     if [ $download_exit_code -ne 0 ]; then
-        print_error "Model download failed with exit code $download_exit_code. Check log: $NETWORK_VOLUME/logs/model_download.log"
+        print_error "Model download failed (exit code $download_exit_code)."
+        print_info "Check the log for details: tail -n 50 $NETWORK_VOLUME/logs/model_download.log"
+        print_info "You can restart the script to retry — downloads usually resume automatically."
         exit 1
     fi
     
     # Verify model files actually exist based on MODEL_TYPE
     print_info "Verifying model download..."
+    model_verify_failed=false
     case $MODEL_TYPE in
         "flux")
-            if [ ! -f "$NETWORK_VOLUME/models/flux/flux1-dev.safetensors" ] && [ ! -d "$NETWORK_VOLUME/models/flux" ]; then
-                print_error "Flux model files not found after download. Check log: $NETWORK_VOLUME/logs/model_download.log"
-                exit 1
+            if [ ! -d "$NETWORK_VOLUME/models/flux" ] || [ -z "$(ls -A "$NETWORK_VOLUME/models/flux" 2>/dev/null)" ]; then
+                print_error "Flux model files not found at: $NETWORK_VOLUME/models/flux"
+                model_verify_failed=true
             fi
             ;;
         "sdxl")
             if [ ! -f "$NETWORK_VOLUME/models/sdXL_v10VAEFix.safetensors" ]; then
-                print_error "SDXL model file not found after download. Check log: $NETWORK_VOLUME/logs/model_download.log"
-                exit 1
+                print_error "SDXL model file not found at: $NETWORK_VOLUME/models/sdXL_v10VAEFix.safetensors"
+                model_verify_failed=true
             fi
             ;;
         "wan13")
             if [ ! -d "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" ] || [ -z "$(ls -A "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B" 2>/dev/null)" ]; then
-                print_error "Wan 1.3B model files not found after download. Check log: $NETWORK_VOLUME/logs/model_download.log"
-                exit 1
+                print_error "Wan 1.3B model files not found at: $NETWORK_VOLUME/models/Wan/Wan2.1-T2V-1.3B"
+                model_verify_failed=true
             fi
             ;;
         "wan14b_t2v")
             if [ ! -d "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" ] || [ -z "$(ls -A "$NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B" 2>/dev/null)" ]; then
-                print_error "Wan 14B T2V model files not found after download. Check log: $NETWORK_VOLUME/logs/model_download.log"
-                exit 1
+                print_error "Wan 14B T2V model files not found at: $NETWORK_VOLUME/models/Wan/Wan2.1-T2V-14B"
+                model_verify_failed=true
             fi
             ;;
         "wan14b_i2v")
             if [ ! -d "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" ] || [ -z "$(ls -A "$NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P" 2>/dev/null)" ]; then
-                print_error "Wan 14B I2V model files not found after download. Check log: $NETWORK_VOLUME/logs/model_download.log"
-                exit 1
+                print_error "Wan 14B I2V model files not found at: $NETWORK_VOLUME/models/Wan/Wan2.1-I2V-14B-480P"
+                model_verify_failed=true
             fi
             ;;
         "qwen")
             if [ ! -d "$NETWORK_VOLUME/models/Qwen-Image" ] || [ -z "$(ls -A "$NETWORK_VOLUME/models/Qwen-Image" 2>/dev/null)" ]; then
-                print_error "Qwen Image model files not found after download. Check log: $NETWORK_VOLUME/logs/model_download.log"
-                exit 1
+                print_error "Qwen Image model files not found at: $NETWORK_VOLUME/models/Qwen-Image"
+                model_verify_failed=true
+            fi
+            ;;
+        "qwen_2512")
+            if [ ! -d "$NETWORK_VOLUME/models/Qwen-Image-2512" ] || [ -z "$(ls -A "$NETWORK_VOLUME/models/Qwen-Image-2512" 2>/dev/null)" ]; then
+                print_error "Qwen Image 2512 model files not found at: $NETWORK_VOLUME/models/Qwen-Image-2512"
+                model_verify_failed=true
             fi
             ;;
         "z_image_turbo")
@@ -833,12 +937,23 @@ if [ -n "$MODEL_DOWNLOAD_PID" ]; then
                 missing_files="$missing_files zimage_turbo_training_adapter_v2.safetensors"
             fi
             if [ -n "$missing_files" ]; then
-                print_error "Z Image Turbo model files missing after download:$missing_files"
-                print_error "Check log: $NETWORK_VOLUME/logs/model_download.log"
-                exit 1
+                print_error "Z Image Turbo model files missing:$missing_files"
+                model_verify_failed=true
             fi
             ;;
     esac
+
+    if [ "$model_verify_failed" = true ]; then
+        echo ""
+        print_info "The download reported success but model files are missing or incomplete."
+        print_info "Possible causes:"
+        print_info "  - Insufficient disk space (check with: df -h)"
+        print_info "  - Download was interrupted or corrupted"
+        print_info "  - File permissions issue"
+        print_info "Check the download log: tail -n 50 $NETWORK_VOLUME/logs/model_download.log"
+        print_info "You can restart the script to retry — downloads usually resume automatically."
+        exit 1
+    fi
     print_success "Model download completed and verified!"
     echo ""
 fi
@@ -880,12 +995,35 @@ else
     print_warning "dataset.toml not found at $DATASET_TOML"
 fi
 
+# Also configure dataset_qwen.toml for Qwen Image 2512 (uses 1328 resolution)
+if [ "$MODEL_TYPE" = "qwen_2512" ]; then
+    DATASET_QWEN_TOML="$NETWORK_VOLUME/diffusion_pipe/examples/dataset_qwen.toml"
+    if [ -f "$DATASET_QWEN_TOML" ]; then
+        print_info "Updating dataset_qwen.toml with actual paths..."
+        cp "$DATASET_QWEN_TOML" "$DATASET_QWEN_TOML.backup"
+        sed -i "s|\$NETWORK_VOLUME/image_dataset_here|$NETWORK_VOLUME/image_dataset_here|g" "$DATASET_QWEN_TOML" 2>/dev/null || print_warning "Failed to update image directory path in dataset_qwen.toml"
+        sed -i "s|\$NETWORK_VOLUME/video_dataset_here|$NETWORK_VOLUME/video_dataset_here|g" "$DATASET_QWEN_TOML" 2>/dev/null || print_warning "Failed to update video directory path in dataset_qwen.toml"
+        if [ "$CAPTION_MODE" = "videos" ] || [ "$CAPTION_MODE" = "both" ]; then
+            print_info "Enabling video dataset in Qwen dataset configuration..."
+            sed -i '/# \[\[directory\]\]/,/# num_repeats = 5/ s/^# //' "$DATASET_QWEN_TOML" 2>/dev/null
+        fi
+        print_success "Qwen dataset configuration updated (resolution: 1328)"
+    else
+        print_warning "dataset_qwen.toml not found at $DATASET_QWEN_TOML"
+    fi
+fi
+
 # Extract and display training configuration summary
 print_header "Training Configuration Summary"
 echo ""
 
-# Read resolution from dataset.toml
-if [ -f "$DATASET_TOML" ]; then
+# Read resolution from dataset.toml (use dataset_qwen.toml for Qwen 2512)
+if [ "$MODEL_TYPE" = "qwen_2512" ] && [ -f "$NETWORK_VOLUME/diffusion_pipe/examples/dataset_qwen.toml" ]; then
+    RESOLUTION=$(grep "^resolutions = " "$NETWORK_VOLUME/diffusion_pipe/examples/dataset_qwen.toml" | sed 's/resolutions = \[\([0-9]*\)\]/\1/')
+    if [ -z "$RESOLUTION" ]; then
+        RESOLUTION="1328"
+    fi
+elif [ -f "$DATASET_TOML" ]; then
     RESOLUTION=$(grep "^resolutions = " "$DATASET_TOML" | sed 's/resolutions = \[\([0-9]*\)\]/\1/')
     if [ -z "$RESOLUTION" ]; then
         RESOLUTION="1024 (default)"
@@ -1177,7 +1315,20 @@ print_header "Starting Training"
 echo ""
 
 print_info "Changing to diffusion_pipe directory..."
-cd "$NETWORK_VOLUME/diffusion_pipe"
+if ! cd "$NETWORK_VOLUME/diffusion_pipe"; then
+    print_error "Could not find the diffusion_pipe directory at: $NETWORK_VOLUME/diffusion_pipe"
+    print_error "This usually means the workspace was not set up correctly."
+    print_error "Try restarting the pod to trigger the initial setup again."
+    exit 1
+fi
+
+# Verify the training config file exists before proceeding
+if [ ! -f "examples/$TOML_FILE" ]; then
+    print_error "Training configuration file not found: examples/$TOML_FILE"
+    print_error "Expected location: $NETWORK_VOLUME/diffusion_pipe/examples/$TOML_FILE"
+    print_error "This file should have been copied during model setup. Try selecting the model again."
+    exit 1
+fi
 
 print_info "Ensuring dependencies are up to date before training..."
 print_info "Upgrading transformers package..."
@@ -1193,7 +1344,7 @@ print_info "Using configuration: examples/$TOML_FILE"
 echo ""
 
 # Add special warning for Qwen Image model initialization
-if [ "$MODEL_TYPE" = "qwen" ]; then
+if [ "$MODEL_TYPE" = "qwen" ] || [ "$MODEL_TYPE" = "qwen_2512" ]; then
     print_warning "⚠️  IMPORTANT: Qwen Image model initialization can take several minutes."
     print_warning "⚠️  The script may appear to hang during initialization - this is NORMAL."
     print_warning "⚠️  As long as the script doesn't exit with an error, let it run."

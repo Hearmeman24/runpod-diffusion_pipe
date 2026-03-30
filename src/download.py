@@ -21,9 +21,23 @@ if not token:
 url = f"https://civitai.com/api/v1/model-versions/{args.model}"
 
 # Perform the request
-response = requests.get(url, stream=True)
+try:
+    response = requests.get(url, timeout=30)
+except requests.RequestException as e:
+    print(f"Error: Failed to connect to CivitAI API: {e}")
+    sys.exit(1)
+
 if response.status_code == 200:
-    data = response.json()
+    try:
+        data = response.json()
+    except ValueError:
+        print("Error: CivitAI API returned invalid JSON.")
+        sys.exit(1)
+
+    if not data.get('files'):
+        print("Error: No files found for this model version. Check the model ID.")
+        sys.exit(1)
+
     filename = data['files'][0]['name']
     download_url = data['files'][0]['downloadUrl']
 
@@ -31,5 +45,9 @@ if response.status_code == 200:
     os.system(
         f'wget "https://civitai.com/api/download/models/{args.model}?type=Model&format=SafeTensor&token={token}" --content-disposition')
 else:
-    print("Error: Failed to retrieve model metadata.")
+    print(f"Error: Failed to retrieve model metadata (HTTP {response.status_code}).")
+    if response.status_code == 404:
+        print("  The model version ID may be incorrect.")
+    elif response.status_code == 401:
+        print("  Authentication failed. Check your CivitAI token.")
     sys.exit(1)

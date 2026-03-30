@@ -1,0 +1,32 @@
+# Output path for training runs. Each training run makes a new directory in here.
+output_dir = '/training_outputs/diffusion_pipe_training_runs/qwen_2512_lora'
+
+save_every_n_epochs = 20
+epochs = 80
+pipeline_stages = 1
+micro_batch_size_per_gpu = 1
+gradient_accumulation_steps = 1
+activation_checkpointing = true
+dataset = 'examples/dataset_qwen.toml'
+
+[model]
+type = 'qwen_image'
+diffusers_path = '/models/Qwen-Image-2512'
+dtype = 'bfloat16'
+transformer_dtype = 'float8'
+timestep_sample_method = 'logit_normal'
+
+
+[adapter]
+type = "lora"
+rank = 32
+dtype = "bfloat16"
+
+
+
+[optimizer]
+type = 'adamw_optimi'
+lr = 2e-4
+betas = [0.9, 0.99]
+weight_decay = 0.01
+eps = 1e-8

@@ -185,11 +185,6 @@ if [ -d "/tmp/runpod-diffusion_pipe" ]; then
     mv "$NETWORK_VOLUME/runpod-diffusion_pipe/Captioning" "$NETWORK_VOLUME/" 2>/dev/null || true
     mv "$NETWORK_VOLUME/runpod-diffusion_pipe/wan2.2_lora_training" "$NETWORK_VOLUME/" 2>/dev/null || true
 
-    if [ "$IS_DEV" == "true" ]; then
-        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/qwen_image_musubi_training" "$NETWORK_VOLUME/" 2>/dev/null || true
-        mv "$NETWORK_VOLUME/runpod-diffusion_pipe/z_image_musubi_training" "$NETWORK_VOLUME/" 2>/dev/null || true
-    fi
-
     if [ -d "/diffusion_pipe" ]; then
         mv /diffusion_pipe "$NETWORK_VOLUME/"
     fi
@@ -239,6 +234,9 @@ if [ -d "/tmp/runpod-diffusion_pipe" ]; then
         rm -rf "$NETWORK_VOLUME/diffusion_pipe/examples"/*
         if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/dataset.toml" ]; then
             mv "$NETWORK_VOLUME/runpod-diffusion_pipe/dataset.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
+        fi
+        if [ -f "$NETWORK_VOLUME/runpod-diffusion_pipe/dataset_qwen.toml" ]; then
+            mv "$NETWORK_VOLUME/runpod-diffusion_pipe/dataset_qwen.toml" "$NETWORK_VOLUME/diffusion_pipe/examples/"
         fi
     fi
 fi
