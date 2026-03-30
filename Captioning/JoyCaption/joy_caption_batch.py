@@ -117,12 +117,26 @@ SOLUTIONS:
 
                     # Load model - match working Gradio implementation exactly
                     logger.info("Loading model...")
-                    self.model = LlavaForConditionalGeneration.from_pretrained(
-                        self.model_name,
-                        torch_dtype="bfloat16",  # Use string format like working implementation
-                        device_map=0 if self.device == "cuda" else None,  # Use specific device like working implementation
-                        trust_remote_code=True
+
+                    # Use flash attention if available for faster inference and lower VRAM
+                    model_kwargs = dict(
+                        torch_dtype="bfloat16",
+                        device_map=0 if self.device == "cuda" else None,
+                        trust_remote_code=True,
                     )
+                    try:
+                        self.model = LlavaForConditionalGeneration.from_pretrained(
+                            self.model_name,
+                            attn_implementation="flash_attention_2",
+                            **model_kwargs,
+                        )
+                        logger.info("Using flash attention 2")
+                    except (ValueError, ImportError):
+                        logger.info("Flash attention not available, using default attention")
+                        self.model = LlavaForConditionalGeneration.from_pretrained(
+                            self.model_name,
+                            **model_kwargs,
+                        )
 
                     # Fix missing pad_token
                     tok = self.processor.tokenizer
@@ -200,14 +214,10 @@ SOLUTIONS:
 
             logging.info("Generating caption...")
             with torch.no_grad():
-                # Use generation parameters that match the working Gradio implementation
                 output_ids = self.model.generate(
                     **inputs,
-                    max_new_tokens=512,
-                    do_sample=True,
-                    temperature=0.6,  # Match working implementation
-                    top_p=0.9,        # Match working implementation
-                    top_k=None,       # Don't use top_k like working implementation
+                    max_new_tokens=256,
+                    do_sample=False,
                     suppress_tokens=None,
                     pad_token_id=self.processor.tokenizer.pad_token_id,
                     use_cache=True
