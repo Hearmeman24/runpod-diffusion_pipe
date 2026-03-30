@@ -180,7 +180,7 @@ setup_venv() {
     # Create virtual environment if it doesn't exist or was removed
     if [[ ! -d "$VENV_DIR" ]]; then
         log_info "Creating virtual environment at $VENV_DIR"
-        $PYTHON_CMD -m venv "$VENV_DIR"
+        $PYTHON_CMD -m venv --system-site-packages "$VENV_DIR"
 
         # Verify creation was successful
         if [[ ! -f "$VENV_DIR/bin/activate" ]]; then
