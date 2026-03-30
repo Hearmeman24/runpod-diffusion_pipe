@@ -912,8 +912,8 @@ if [ -n "$MODEL_DOWNLOAD_PID" ]; then
     BAR_WIDTH=30
 
     while kill -0 "$MODEL_DOWNLOAD_PID" 2>/dev/null; do
-        # Check for auth/access errors in log
-        if tail -n 20 "$DOWNLOAD_LOG" 2>/dev/null | grep -qi "unauthorized\|403\|404"; then
+        # Check for auth/access errors in log (match actual error messages, not HTTP status codes in info lines)
+        if tail -n 20 "$DOWNLOAD_LOG" 2>/dev/null | grep -qiE "(^error:|unauthorized|access denied|repository not found|401 Client Error|403 Client Error|404 Client Error)"; then
             echo ""
             print_error "Model download encountered errors."
             print_info "Check the full log: tail -n 50 $DOWNLOAD_LOG"
