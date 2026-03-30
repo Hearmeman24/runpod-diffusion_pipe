@@ -279,8 +279,11 @@ def process_images(input_dir: str, output_dir: str = None, prompt: str = system_
 
     logger.info(f"Found {len(image_files)} image files to process")
 
-    # Initialize caption manager
+    # Initialize caption manager and pre-load model before processing starts
     caption_manager = JoyCaptionManager(timeout_minutes=timeout_minutes)
+    logger.info("Pre-loading model before processing images...")
+    caption_manager.load_model()
+    logger.info("Model ready, starting image processing")
 
     processed_count = 0
     skipped_count = 0

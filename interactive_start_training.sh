@@ -785,11 +785,13 @@ if [ "$CAPTION_MODE" != "skip" ]; then
                     status_hint=""
                     if [ -f "$CAPTION_LOG" ]; then
                         recent_log=$(tail -n 10 "$CAPTION_LOG" 2>/dev/null)
-                        if echo "$recent_log" | grep -q "Loading model"; then
+                        if echo "$recent_log" | grep -q "Pre-loading model"; then
+                            status_hint="Downloading and loading model..."
+                        elif echo "$recent_log" | grep -q "Loading model"; then
                             status_hint="Loading caption model..."
                         elif echo "$recent_log" | grep -q "Loading processor"; then
                             status_hint="Loading processor..."
-                        elif echo "$recent_log" | grep -q "Model loaded"; then
+                        elif echo "$recent_log" | grep -q "Model loaded\|Model ready"; then
                             status_hint="Model loaded, starting captioning..."
                         elif echo "$recent_log" | grep -qE "Downloading.*\.whl"; then
                             # Extract the package name being downloaded
