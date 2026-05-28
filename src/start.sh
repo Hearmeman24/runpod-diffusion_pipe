@@ -194,6 +194,16 @@ if [ -d "/tmp/runpod-diffusion_pipe" ]; then
     if [ -d "$DIFF_PIPE_DIR" ] && [ -d "$DIFF_PIPE_DIR/.git" ]; then
         cd "$DIFF_PIPE_DIR" || exit 1
         git pull >> "$STARTUP_LOG" 2>&1 || true
+        # Keep bundled ComfyUI in sync — diffusion-pipe calls newer ComfyUI APIs
+        # (e.g. comfy.sd.load_clip(disable_dynamic=...)) that older revisions lack.
+        git submodule update --init --recursive >> "$STARTUP_LOG" 2>&1 || true
+        for sub in submodules/ComfyUI configs/ComfyUI ComfyUI; do
+            if [ -d "$DIFF_PIPE_DIR/$sub/.git" ] || [ -f "$DIFF_PIPE_DIR/$sub/.git" ]; then
+                (cd "$DIFF_PIPE_DIR/$sub" && git fetch --quiet origin && \
+                    git checkout master >/dev/null 2>&1 || git checkout main >/dev/null 2>&1; \
+                    git pull --ff-only) >> "$STARTUP_LOG" 2>&1 || true
+            fi
+        done
         cd "$NETWORK_VOLUME" || exit 1
     fi
 
