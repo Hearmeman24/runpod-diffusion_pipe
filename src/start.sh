@@ -269,6 +269,7 @@ run_quiet "huggingface"    pip install --upgrade "huggingface_hub[cli]"
 run_quiet "peft"           pip install --upgrade "peft>=0.17.0"
 run_quiet "deepspeed"      pip install --upgrade "deepspeed>=0.17.6"
 run_quiet "diffusers"      bash -c "pip uninstall -y diffusers && pip install git+https://github.com/huggingface/diffusers"
+run_quiet "runtime compatibility deps" pip install --upgrade --force-reinstall "protobuf<7" comfy_aimdo
 
 if [ "$download_triton" == "true" ]; then
     run_quiet "triton" pip install triton
