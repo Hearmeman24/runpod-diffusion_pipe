@@ -207,6 +207,16 @@ if [ -d "/tmp/runpod-diffusion_pipe" ]; then
         cd "$NETWORK_VOLUME" || exit 1
     fi
 
+    # Force the gloo backend for distributed init.
+    # RunPod's H100 hosts now ship CUDA 13 host drivers; NCCL collectives (even the
+    # single-rank metadata broadcast in dataset.py) SIGSEGV with the current
+    # torch 2.9 / nccl 2.27 stack on those drivers, killing every training run.
+    # Single-GPU LoRA training (--num_gpus=1) only needs trivial CPU broadcasts, which
+    # gloo handles; gradient math is identical. (Diagnosed via the template sanity sweep, 2026-06-15.)
+    if [ -f "$DIFF_PIPE_DIR/train.py" ]; then
+        sed -i 's/deepspeed\.init_distributed()/deepspeed.init_distributed(dist_backend="gloo")/' "$DIFF_PIPE_DIR/train.py"
+    fi
+
     TOML_DIR="$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files"
     if [ -d "$TOML_DIR" ]; then
         for toml_file in "$TOML_DIR"/*.toml; do
@@ -267,6 +277,9 @@ run_quiet "torch"          pip install torch torchvision torchaudio
 run_quiet "transformers"   pip install transformers -U
 run_quiet "huggingface"    pip install --upgrade "huggingface_hub[cli]"
 run_quiet "peft"           pip install --upgrade "peft>=0.17.0"
+# scipy is required by the bundled ComfyUI (openaimodel -> sdpose imports scipy.ndimage).
+# It is not in diffusion-pipe's requirements, so model loading ImportErrors without it.
+run_quiet "scipy"          pip install scipy
 run_quiet "deepspeed"      pip install --upgrade "deepspeed>=0.17.6"
 run_quiet "diffusers"      bash -c "pip uninstall -y diffusers && pip install git+https://github.com/huggingface/diffusers"
 run_quiet "runtime compatibility deps" pip install --upgrade --force-reinstall "protobuf<7" comfy_aimdo
