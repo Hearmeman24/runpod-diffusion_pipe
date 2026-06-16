@@ -66,6 +66,17 @@ mkdir -p "$NETWORK_VOLUME/logs"
 STARTUP_LOG="$NETWORK_VOLUME/logs/startup.log"
 echo "--- Startup log $(date) ---" > "$STARTUP_LOG"
 
+# diffusion-pipe lives on the persistent volume and is (re)asserted on every boot, so its
+# path must be known unconditionally — NOT only inside the first-boot staging guard below.
+DIFF_PIPE_DIR="$NETWORK_VOLUME/diffusion_pipe"
+export DIFF_PIPE_DIR
+
+# Degradation sentinel: cleared exactly ONCE here, at boot start. Every stage below only
+# APPENDS reasons to it; nothing else clears it. interactive_start_training.sh refuses to
+# launch training if it exists at training time (the real gate — start.sh ends in sleep
+# infinity and never launches training itself).
+rm -f /tmp/ENV_DEGRADED
+
 # ============================================================
 # GPU detection (quiet - only writes to files and returns value)
 # ============================================================
@@ -189,33 +200,10 @@ if [ -d "/tmp/runpod-diffusion_pipe" ]; then
         mv /diffusion_pipe "$NETWORK_VOLUME/"
     fi
 
-    DIFF_PIPE_DIR="$NETWORK_VOLUME/diffusion_pipe"
-
-    if [ -d "$DIFF_PIPE_DIR" ] && [ -d "$DIFF_PIPE_DIR/.git" ]; then
-        cd "$DIFF_PIPE_DIR" || exit 1
-        git pull >> "$STARTUP_LOG" 2>&1 || true
-        # Keep bundled ComfyUI in sync — diffusion-pipe calls newer ComfyUI APIs
-        # (e.g. comfy.sd.load_clip(disable_dynamic=...)) that older revisions lack.
-        git submodule update --init --recursive >> "$STARTUP_LOG" 2>&1 || true
-        for sub in submodules/ComfyUI configs/ComfyUI ComfyUI; do
-            if [ -d "$DIFF_PIPE_DIR/$sub/.git" ] || [ -f "$DIFF_PIPE_DIR/$sub/.git" ]; then
-                (cd "$DIFF_PIPE_DIR/$sub" && git fetch --quiet origin && \
-                    git checkout master >/dev/null 2>&1 || git checkout main >/dev/null 2>&1; \
-                    git pull --ff-only) >> "$STARTUP_LOG" 2>&1 || true
-            fi
-        done
-        cd "$NETWORK_VOLUME" || exit 1
-    fi
-
-    # Force the gloo backend for distributed init.
-    # RunPod's H100 hosts now ship CUDA 13 host drivers; NCCL collectives (even the
-    # single-rank metadata broadcast in dataset.py) SIGSEGV with the current
-    # torch 2.9 / nccl 2.27 stack on those drivers, killing every training run.
-    # Single-GPU LoRA training (--num_gpus=1) only needs trivial CPU broadcasts, which
-    # gloo handles; gradient math is identical. (Diagnosed via the template sanity sweep, 2026-06-15.)
-    if [ -f "$DIFF_PIPE_DIR/train.py" ]; then
-        sed -i 's/deepspeed\.init_distributed()/deepspeed.init_distributed(dist_backend="gloo")/' "$DIFF_PIPE_DIR/train.py"
-    fi
+    # NOTE: the diffusion-pipe pin / ComfyUI de-drift / gloo sed used to live HERE. They were
+    # moved OUT to the always-run block below (after this guard closes) so they re-assert on
+    # every boot, not just the boot that happens to stage /tmp/runpod-diffusion_pipe. DIFF_PIPE_DIR
+    # is now defined unconditionally near the top of this script.
 
     TOML_DIR="$NETWORK_VOLUME/runpod-diffusion_pipe/toml_files"
     if [ -d "$TOML_DIR" ]; then
@@ -261,6 +249,66 @@ if [ -d "/tmp/runpod-diffusion_pipe" ]; then
     fi
 fi
 
+# ============================================================
+# ALWAYS-RUN: pin diffusion-pipe + de-drift its ComfyUI submodule + force the gloo backend.
+# Runs on EVERY boot (keyed only on the repo existing on the volume), NOT just the boot that
+# stages /tmp. This is what de-drifts a persistent volume that a prior boot pushed to upstream
+# master. Each pin is a fixed sha, so re-running is idempotent.
+# ============================================================
+# Full 40-char object names — GitHub's smart-HTTP only serves a `want` on a FULL sha (or a ref),
+# NOT an abbreviated one, so the targeted `git fetch origin <sha>` below must use the full form.
+DIFF_PIPE_PIN="5aa65772168809346629d65a094d3a5523331669"
+COMFYUI_PIN="f49bdb655707b97952dcef40e12e5af1f08d2007"
+
+if [ -d "$DIFF_PIPE_DIR/.git" ]; then
+    cd "$DIFF_PIPE_DIR" || exit 1
+
+    # A bare `git fetch origin` does NOT deepen a shallow volume clone, so a later
+    # `git reset --hard <sha>` would hard-error if the pin isn't in history. Fetch the EXACT
+    # pinned object (works on shallow clones); unshallow, then a plain fetch, as fallbacks.
+    git fetch --depth=1 origin "$DIFF_PIPE_PIN" >> "$STARTUP_LOG" 2>&1 \
+        || git fetch --unshallow >> "$STARTUP_LOG" 2>&1 \
+        || git fetch --quiet origin >> "$STARTUP_LOG" 2>&1 || true
+
+    # A prior boot's gloo sed dirtied train.py (a TRACKED file); a dirty tree makes
+    # `git reset --hard` refuse to move some paths. Discard working-tree edits FIRST, then
+    # re-apply the sed below.
+    git checkout -- . >> "$STARTUP_LOG" 2>&1 || true
+
+    # Pin to the TESTED commit, or FAIL LOUDLY. Do NOT fall back to origin/main — that re-points
+    # everything at drifting upstream and re-breaks the exact bug class we are fixing. If the pin
+    # isn't fetchable, write the sentinel and stop touching the repo.
+    if ! git reset --hard "$DIFF_PIPE_PIN" >> "$STARTUP_LOG" 2>&1; then
+        echo "diffusion-pipe pin $DIFF_PIPE_PIN not fetchable — refusing to take latest" >> /tmp/ENV_DEGRADED
+    else
+        # The persistent volume's ComfyUI submodule may already be advanced past the gitlink
+        # (a prior boot's now-deleted master loop). Plain `submodule update` will NOT move an
+        # advanced/branch checkout back; --force does, and `sync` rewrites the URL from the
+        # pinned .gitmodules first.
+        git submodule sync --recursive >> "$STARTUP_LOG" 2>&1 || true
+        git submodule update --init --recursive --force >> "$STARTUP_LOG" 2>&1 || true
+        # Belt: fetch the EXACT gitlink object and check it out, pinning ComfyUI to v0.24.0
+        # INDEPENDENTLY of which diffusion-pipe commit the superproject landed on (so nothing
+        # can silently re-drift ComfyUI to a newer, scipy-breaking commit).
+        git -C submodules/ComfyUI fetch --quiet origin "$COMFYUI_PIN" >> "$STARTUP_LOG" 2>&1 || true
+        git -C submodules/ComfyUI checkout --quiet "$COMFYUI_PIN" >> "$STARTUP_LOG" 2>&1 \
+            || echo "ComfyUI submodule not at gitlink $COMFYUI_PIN (de-drift failed)" >> /tmp/ENV_DEGRADED
+    fi
+
+    # Force the gloo backend for distributed init.
+    # RunPod's H100 hosts now ship CUDA 13 host drivers; NCCL collectives (even the
+    # single-rank metadata broadcast in dataset.py) SIGSEGV with the current
+    # torch 2.9 / nccl 2.27 stack on those drivers, killing every training run.
+    # Single-GPU LoRA training (--num_gpus=1) only needs trivial CPU broadcasts, which
+    # gloo handles; gradient math is identical. (Diagnosed via the template sanity sweep, 2026-06-15.)
+    # Grep-guarded so it is idempotent and survives the `git checkout -- .` above (which reverts it).
+    if [ -f "$DIFF_PIPE_DIR/train.py" ] && ! grep -q 'dist_backend="gloo"' "$DIFF_PIPE_DIR/train.py"; then
+        sed -i 's/deepspeed\.init_distributed()/deepspeed.init_distributed(dist_backend="gloo")/' "$DIFF_PIPE_DIR/train.py"
+    fi
+
+    cd "$NETWORK_VOLUME" || exit 1
+fi
+
 mkdir -p "$NETWORK_VOLUME/image_dataset_here"
 mkdir -p "$NETWORK_VOLUME/video_dataset_here"
 
@@ -273,19 +321,61 @@ fi
 # ============================================================
 status_msg "[3/4] Fetching latest updates..."
 
-run_quiet "torch"          pip install torch torchvision torchaudio
-run_quiet "transformers"   pip install transformers -U
-run_quiet "huggingface"    pip install --upgrade "huggingface_hub[cli]"
-run_quiet "peft"           pip install --upgrade "peft>=0.17.0"
-# scipy is required by the bundled ComfyUI (openaimodel -> sdpose imports scipy.ndimage).
-# It is not in diffusion-pipe's requirements, so model loading ImportErrors without it.
-run_quiet "scipy"          pip install scipy
-run_quiet "deepspeed"      pip install --upgrade "deepspeed>=0.17.6"
-run_quiet "diffusers"      bash -c "pip uninstall -y diffusers && pip install git+https://github.com/huggingface/diffusers"
-run_quiet "runtime compatibility deps" pip install --upgrade --force-reinstall "protobuf<7" comfy_aimdo
+# Pinned overlay. The old block force-UPGRADED torch/transformers/hf/peft/deepspeed to latest and
+# installed diffusers from git main on every boot — that daily drift is exactly what broke the
+# template (diffusers main dropped txt_seq_lens -> Qwen TypeError; ComfyUI master pulled scipy in).
+# We now install a single internally-consistent pinned set and honor diffusion-pipe's own
+# requirements.txt as the source of truth for the long tail (deepspeed==0.18.4, scipy, etc.).
+export PIP_INDEX_URL="https://download.pytorch.org/whl/cu128"
+export PIP_EXTRA_INDEX_URL="https://pypi.org/simple"
+
+# Torch trio pinned to the cu128 build that the flash-attn wheel ([1/4]) was compiled against.
+# Carried as a constraints file so the requirements.txt install below cannot pull a different torch.
+printf 'torch==2.9.1\ntorchvision==0.24.1\ntorchaudio==2.9.1\n' > /tmp/pins.txt
+run_quiet "torch trio" pip install -c /tmp/pins.txt torch==2.9.1 torchvision==0.24.1 torchaudio==2.9.1
+
+# Honor diffusion-pipe's requirements.txt (single source of truth for the transitive set), but
+# strip comfy-kitchen so its py3-none-any STUB wheel can never resolve here — we install the
+# NATIVE comfy-kitchen explicitly below (fp8 requires the compiled build).
+if [ -f "$DIFF_PIPE_DIR/requirements.txt" ]; then
+    grep -v -i 'comfy-kitchen\|comfy_kitchen' "$DIFF_PIPE_DIR/requirements.txt" > /tmp/req_no_stub.txt
+    run_quiet "requirements" pip install -c /tmp/pins.txt -r /tmp/req_no_stub.txt
+else
+    echo "requirements.txt missing at $DIFF_PIPE_DIR — diffusion-pipe deps not asserted" >> /tmp/ENV_DEGRADED
+fi
+
+# Native fp8 comfy-kitchen. --only-binary=:all: forbids an sdist build; combined with the
+# grep-strip above (so the stub wheel is never a transitive option) this lands the compiled wheel.
+run_quiet "comfy-kitchen (native)" pip install -c /tmp/pins.txt --only-binary=:all: comfy-kitchen==0.2.10
+
+# Over-pin the packages requirements.txt leaves loose: diffusers (>=0.35.1 would re-pull main and
+# re-break Qwen), comfy-aimdo, and protobuf (transformers/sentencepiece compat).
+run_quiet "pinned overrides" pip install -c /tmp/pins.txt diffusers==0.38.0 comfy_aimdo==0.4.10 "protobuf<7"
 
 if [ "$download_triton" == "true" ]; then
-    run_quiet "triton" pip install triton
+    run_quiet "triton" pip install -c /tmp/pins.txt triton
+fi
+
+# ------------------------------------------------------------
+# Boot diagnostics — APPEND-only to /tmp/ENV_DEGRADED (cleared once at boot start).
+# These DIAGNOSE; the real gate is interactive_start_training.sh refusing to train if the
+# sentinel exists (start.sh ends in sleep infinity and never launches training itself).
+# ------------------------------------------------------------
+# (a) torch is exactly the pinned cu128 build.
+python -c "import torch,sys; v=torch.__version__; sys.exit(0 if v.startswith('2.9.1') and 'cu128' in v else 1)" 2>/dev/null \
+    || echo "torch != 2.9.1+cu128 (got $(python -c 'import torch;print(torch.__version__)' 2>/dev/null))" >> /tmp/ENV_DEGRADED
+# (b) deepspeed is the pinned version (caught a failed install / wrong resolution).
+python -c "import deepspeed,sys; sys.exit(0 if deepspeed.__version__=='0.18.4' else 1)" 2>/dev/null \
+    || echo "deepspeed != 0.18.4 (got $(python -c 'import deepspeed;print(deepspeed.__version__)' 2>/dev/null))" >> /tmp/ENV_DEGRADED
+# (c) comfy-kitchen is the NATIVE fp8 build, not the py3-none-any stub. The native cp312-abi3 wheel
+# installs a compiled .so in the package dir; the stub installs only .py. ADVISORY (builder
+# confirms on the Phase-0 pod that the native wheel lands a .so) — the §7 log-grep on
+# "Failed to import comfy_kitchen" stays the authoritative fp8 gate.
+python -c "import comfy_kitchen,os,sys; f=getattr(comfy_kitchen,'__file__','') or ''; d=os.path.dirname(f); ok=bool(f) and any(p.endswith('.so') for p in os.listdir(d)); sys.exit(0 if ok else 1)" 2>/dev/null \
+    || echo "comfy_kitchen resolved to the py3-none-any STUB (no .so in package dir) — fp8 may silently degrade" >> /tmp/ENV_DEGRADED
+
+if [ -f /tmp/ENV_DEGRADED ]; then
+    { echo "ENV DEGRADED:"; cat /tmp/ENV_DEGRADED; } | tee -a "$STARTUP_LOG"
 fi
 
 # ============================================================

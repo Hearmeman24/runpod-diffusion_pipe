@@ -1492,6 +1492,16 @@ print_warning "Training is starting. This may take several hours depending on yo
 print_info "You can monitor progress in the console output below."
 echo ""
 
+# Refuse to train if boot flagged the environment as degraded. start.sh diagnoses pinned-dependency
+# problems (wrong torch, missing deepspeed, comfy-kitchen stub) and appends them to this sentinel;
+# this is the real gate, at the point training is actually launched.
+if [ -f /tmp/ENV_DEGRADED ]; then
+    print_error "REFUSING TO TRAIN — environment is degraded:"
+    cat /tmp/ENV_DEGRADED
+    echo "Fix the above (or rebuild the pod) before training. Aborting."
+    exit 1
+fi
+
 # Start training with the appropriate TOML file
 NCCL_P2P_DISABLE="1" NCCL_IB_DISABLE="1" deepspeed --num_gpus=1 train.py --deepspeed --config "examples/$TOML_FILE"
 
