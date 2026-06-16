@@ -329,9 +329,12 @@ status_msg "[3/4] Fetching latest updates..."
 export PIP_INDEX_URL="https://download.pytorch.org/whl/cu128"
 export PIP_EXTRA_INDEX_URL="https://pypi.org/simple"
 
-# Torch trio pinned to the cu128 build that the flash-attn wheel ([1/4]) was compiled against.
-# Carried as a constraints file so the requirements.txt install below cannot pull a different torch.
-printf 'torch==2.9.1\ntorchvision==0.24.1\ntorchaudio==2.9.1\n' > /tmp/pins.txt
+# Constraints file applied to EVERY pip step so requirements.txt / the interactive script can't
+# re-float these. torch trio: the cu128 build the flash-attn wheel ([1/4]) was compiled against.
+# transformers: MUST stay on 4.x — transformers 5.x removed CLIPTextModel.text_model, which breaks
+# diffusion-pipe's SDXL/CLIP loading (verified live on Phase-0 2026-06-16: 5.12.1 fails, 4.57.6 trains).
+# peft 0.19.1 is the version that trains green with this set.
+printf 'torch==2.9.1\ntorchvision==0.24.1\ntorchaudio==2.9.1\ntransformers==4.57.6\npeft==0.19.1\n' > /tmp/pins.txt
 run_quiet "torch trio" pip install -c /tmp/pins.txt torch==2.9.1 torchvision==0.24.1 torchaudio==2.9.1
 
 # Honor diffusion-pipe's requirements.txt (single source of truth for the transitive set), but
@@ -349,8 +352,8 @@ fi
 run_quiet "comfy-kitchen (native)" pip install -c /tmp/pins.txt --only-binary=:all: comfy-kitchen==0.2.10
 
 # Over-pin the packages requirements.txt leaves loose: diffusers (>=0.35.1 would re-pull main and
-# re-break Qwen), comfy-aimdo, and protobuf (transformers/sentencepiece compat).
-run_quiet "pinned overrides" pip install -c /tmp/pins.txt diffusers==0.38.0 comfy_aimdo==0.4.10 "protobuf<7"
+# re-break Qwen), transformers (unpinned -> 5.x breaks SDXL CLIP), peft, comfy-aimdo, and protobuf.
+run_quiet "pinned overrides" pip install -c /tmp/pins.txt diffusers==0.38.0 transformers==4.57.6 peft==0.19.1 comfy_aimdo==0.4.10 "protobuf<7"
 
 if [ "$download_triton" == "true" ]; then
     run_quiet "triton" pip install -c /tmp/pins.txt triton
@@ -368,11 +371,11 @@ python -c "import torch,sys; v=torch.__version__; sys.exit(0 if v.startswith('2.
 python -c "import deepspeed,sys; sys.exit(0 if deepspeed.__version__=='0.18.4' else 1)" 2>/dev/null \
     || echo "deepspeed != 0.18.4 (got $(python -c 'import deepspeed;print(deepspeed.__version__)' 2>/dev/null))" >> /tmp/ENV_DEGRADED
 # (c) comfy-kitchen is the NATIVE fp8 build, not the py3-none-any stub. The native cp312-abi3 wheel
-# installs a compiled .so in the package dir; the stub installs only .py. ADVISORY (builder
-# confirms on the Phase-0 pod that the native wheel lands a .so) — the §7 log-grep on
-# "Failed to import comfy_kitchen" stays the authoritative fp8 gate.
-python -c "import comfy_kitchen,os,sys; f=getattr(comfy_kitchen,'__file__','') or ''; d=os.path.dirname(f); ok=bool(f) and any(p.endswith('.so') for p in os.listdir(d)); sys.exit(0 if ok else 1)" 2>/dev/null \
-    || echo "comfy_kitchen resolved to the py3-none-any STUB (no .so in package dir) — fp8 may silently degrade" >> /tmp/ENV_DEGRADED
+# ships a compiled .so, but in a SUBPACKAGE (backends/cuda/_C.abi3.so) — NOT the top dir. Probe
+# RECURSIVELY with os.walk; a top-dir-only check false-flags the healthy native wheel as a stub
+# (verified live on the Phase-0 pod 2026-06-16: native wheel installs _C.abi3.so under backends/cuda/).
+python -c "import comfy_kitchen,os,sys; d=os.path.dirname(comfy_kitchen.__file__); sys.exit(0 if any(fn.endswith('.so') for _,_,fs in os.walk(d) for fn in fs) else 1)" 2>/dev/null \
+    || echo "comfy_kitchen has no compiled .so anywhere in the package (stub wheel) — fp8 will silently degrade" >> /tmp/ENV_DEGRADED
 
 if [ -f /tmp/ENV_DEGRADED ]; then
     { echo "ENV DEGRADED:"; cat /tmp/ENV_DEGRADED; } | tee -a "$STARTUP_LOG"

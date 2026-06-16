@@ -1453,12 +1453,10 @@ if [ ! -f "examples/$TOML_FILE" ]; then
     exit 1
 fi
 
-print_info "Ensuring dependencies are up to date before training..."
-print_info "Upgrading transformers package..."
-pip install transformers -U
-
-print_info "Upgrading peft package..."
-pip install --upgrade "peft>=0.17.0"
+# Dependencies are pinned at pod boot (src/start.sh) as a single internally-consistent set.
+# Do NOT re-float transformers/peft here — `pip install transformers -U` pulls transformers 5.x,
+# which removed CLIPTextModel.text_model and breaks SDXL/CLIP loading (verified Phase-0 2026-06-16).
+print_info "Using the pinned dependency set installed at boot (transformers 4.57.6, peft 0.19.1)."
 
 echo ""
 
